@@ -2,23 +2,22 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
-using osuTK;
-using osu.Framework.Graphics;
-using osu.Game.Rulesets.Objects.Drawables;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
+using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Game.Audio;
 using osu.Game.Rulesets.Objects;
+using osu.Game.Rulesets.Objects.Drawables;
 using osu.Game.Rulesets.Osu.Skinning;
 using osu.Game.Rulesets.Osu.Skinning.Default;
 using osu.Game.Rulesets.Osu.UI;
 using osu.Game.Rulesets.Scoring;
-using osuTK.Graphics;
 using osu.Game.Skinning;
+using osuTK;
+using osuTK.Graphics;
 
 namespace osu.Game.Rulesets.Osu.Objects.Drawables
 {
@@ -31,6 +30,12 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
 
         public SliderBall Ball { get; private set; }
         public SkinnableDrawable Body { get; private set; }
+
+        /// <summary>
+        /// A target container which can be used to add top level elements to the slider's display.
+        /// Intended to be used for proxy purposes only.
+        /// </summary>
+        public Container OverlayElementContainer { get; private set; }
 
         public override bool DisplayResult => !HitObject.OnlyJudgeNestedObjects;
 
@@ -65,6 +70,8 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
                 tailContainer = new Container<DrawableSliderTail> { RelativeSizeAxes = Axes.Both },
                 tickContainer = new Container<DrawableSliderTick> { RelativeSizeAxes = Axes.Both },
                 repeatContainer = new Container<DrawableSliderRepeat> { RelativeSizeAxes = Axes.Both },
+                headContainer = new Container<DrawableSliderHead> { RelativeSizeAxes = Axes.Both },
+                OverlayElementContainer = new Container { RelativeSizeAxes = Axes.Both, },
                 Ball = new SliderBall(this)
                 {
                     GetInitialHitAction = () => HeadCircle.HitAction,
@@ -72,7 +79,6 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
                     AlwaysPresent = true,
                     Alpha = 0
                 },
-                headContainer = new Container<DrawableSliderHead> { RelativeSizeAxes = Axes.Both },
                 slidingSample = new PausableSkinnableSound { Looping = true }
             };
 
@@ -119,18 +125,7 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
             }
 
             Samples.Samples = HitObject.TailSamples.Select(s => HitObject.SampleControlPoint.ApplyTo(s)).Cast<ISampleInfo>().ToArray();
-
-            var slidingSamples = new List<ISampleInfo>();
-
-            var normalSample = HitObject.Samples.FirstOrDefault(s => s.Name == HitSampleInfo.HIT_NORMAL);
-            if (normalSample != null)
-                slidingSamples.Add(HitObject.SampleControlPoint.ApplyTo(normalSample).With("sliderslide"));
-
-            var whistleSample = HitObject.Samples.FirstOrDefault(s => s.Name == HitSampleInfo.HIT_WHISTLE);
-            if (whistleSample != null)
-                slidingSamples.Add(HitObject.SampleControlPoint.ApplyTo(whistleSample).With("sliderwhistle"));
-
-            slidingSample.Samples = slidingSamples.ToArray();
+            slidingSample.Samples = HitObject.CreateSlidingSamples().Select(s => HitObject.SampleControlPoint.ApplyTo(s)).Cast<ISampleInfo>().ToArray();
         }
 
         public override void StopAllSamples()
@@ -179,6 +174,8 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
             tailContainer.Clear(false);
             repeatContainer.Clear(false);
             tickContainer.Clear(false);
+
+            OverlayElementContainer.Clear(false);
         }
 
         protected override DrawableHitObject CreateNestedHitObject(HitObject hitObject)

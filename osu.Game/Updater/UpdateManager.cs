@@ -39,9 +39,9 @@ namespace osu.Game.Updater
 
             Schedule(() => Task.Run(CheckForUpdateAsync));
 
-            var version = game.Version;
+            string version = game.Version;
 
-            var lastVersion = config.Get<string>(OsuSetting.Version);
+            string lastVersion = config.Get<string>(OsuSetting.Version);
 
             if (game.IsDeployedBuild && version != lastVersion)
             {
@@ -97,7 +97,7 @@ namespace osu.Game.Updater
             private void load(OsuColour colours, ChangelogOverlay changelog, NotificationOverlay notificationOverlay)
             {
                 Icon = FontAwesome.Solid.CheckSquare;
-                IconBackgound.Colour = colours.BlueDark;
+                IconBackground.Colour = colours.BlueDark;
 
                 Activated = delegate
                 {

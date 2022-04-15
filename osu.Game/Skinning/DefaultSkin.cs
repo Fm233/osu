@@ -8,6 +8,7 @@ using osu.Framework.Audio.Sample;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.OpenGL.Textures;
+using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
 using osu.Game.Audio;
 using osu.Game.Beatmaps.Formats;
@@ -23,10 +24,19 @@ namespace osu.Game.Skinning
 {
     public class DefaultSkin : Skin
     {
+        public static SkinInfo CreateInfo() => new SkinInfo
+        {
+            ID = osu.Game.Skinning.SkinInfo.DEFAULT_SKIN,
+            Name = "osu! (triangles)",
+            Creator = "team osu!",
+            Protected = true,
+            InstantiationInfo = typeof(DefaultSkin).GetInvariantInstantiationInfo()
+        };
+
         private readonly IStorageResourceProvider resources;
 
         public DefaultSkin(IStorageResourceProvider resources)
-            : this(SkinInfo.Default, resources)
+            : this(CreateInfo(), resources)
         {
         }
 
@@ -35,16 +45,15 @@ namespace osu.Game.Skinning
             : base(skin, resources)
         {
             this.resources = resources;
-            Configuration = new DefaultSkinConfiguration();
         }
 
-        public override Texture GetTexture(string componentName, WrapMode wrapModeS, WrapMode wrapModeT) => null;
+        public override Texture GetTexture(string componentName, WrapMode wrapModeS, WrapMode wrapModeT) => Textures?.Get(componentName, wrapModeS, wrapModeT);
 
         public override ISample GetSample(ISampleInfo sampleInfo)
         {
-            foreach (var lookup in sampleInfo.LookupNames)
+            foreach (string lookup in sampleInfo.LookupNames)
             {
-                var sample = resources.AudioManager.Samples.Get(lookup);
+                var sample = Samples?.Get(lookup) ?? resources.AudioManager.Samples.Get(lookup);
                 if (sample != null)
                     return sample;
             }
@@ -62,12 +71,21 @@ namespace osu.Game.Skinning
                 case SkinnableTargetComponent target:
                     switch (target.Target)
                     {
+                        case SkinnableTarget.SongSelect:
+                            var songSelectComponents = new SkinnableTargetComponentsContainer(container =>
+                            {
+                                // do stuff when we need to.
+                            });
+
+                            return songSelectComponents;
+
                         case SkinnableTarget.MainHUDComponents:
                             var skinnableTargetWrapper = new SkinnableTargetComponentsContainer(container =>
                             {
                                 var score = container.OfType<DefaultScoreCounter>().FirstOrDefault();
                                 var accuracy = container.OfType<DefaultAccuracyCounter>().FirstOrDefault();
                                 var combo = container.OfType<DefaultComboCounter>().FirstOrDefault();
+                                var ppCounter = container.OfType<PerformancePointsCounter>().FirstOrDefault();
 
                                 if (score != null)
                                 {
@@ -80,6 +98,13 @@ namespace osu.Game.Skinning
                                     const float horizontal_padding = 20;
 
                                     score.Position = new Vector2(0, vertical_offset);
+
+                                    if (ppCounter != null)
+                                    {
+                                        ppCounter.Y = score.Position.Y + ppCounter.ScreenSpaceDeltaToParentSpace(score.ScreenSpaceDrawQuad.Size).Y - 4;
+                                        ppCounter.Origin = Anchor.TopCentre;
+                                        ppCounter.Anchor = Anchor.TopCentre;
+                                    }
 
                                     if (accuracy != null)
                                     {
@@ -123,6 +148,7 @@ namespace osu.Game.Skinning
                                     new SongProgress(),
                                     new BarHitErrorMeter(),
                                     new BarHitErrorMeter(),
+                                    new PerformancePointsCounter()
                                 }
                             };
 
@@ -131,6 +157,16 @@ namespace osu.Game.Skinning
 
                     break;
             }
+
+            switch (component.LookupName)
+            {
+                // Temporary until default skin has a valid hit lighting.
+                case @"lighting":
+                    return Drawable.Empty();
+            }
+
+            if (GetTexture(component.LookupName) is Texture t)
+                return new Sprite { Texture = t };
 
             return null;
         }

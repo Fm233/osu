@@ -29,6 +29,23 @@ namespace osu.Game.Rulesets.Osu.Objects
             set => throw new System.NotSupportedException($"Adjust via {nameof(RepeatCount)} instead"); // can be implemented if/when needed.
         }
 
+        public override IList<HitSampleInfo> AuxiliarySamples => CreateSlidingSamples().Concat(TailSamples).ToArray();
+
+        public IList<HitSampleInfo> CreateSlidingSamples()
+        {
+            var slidingSamples = new List<HitSampleInfo>();
+
+            var normalSample = Samples.FirstOrDefault(s => s.Name == HitSampleInfo.HIT_NORMAL);
+            if (normalSample != null)
+                slidingSamples.Add(normalSample.With("sliderslide"));
+
+            var whistleSample = Samples.FirstOrDefault(s => s.Name == HitSampleInfo.HIT_WHISTLE);
+            if (whistleSample != null)
+                slidingSamples.Add(whistleSample.With("sliderwhistle"));
+
+            return slidingSamples;
+        }
+
         private readonly Cached<Vector2> endPositionCache = new Cached<Vector2>();
 
         public override Vector2 EndPosition => endPositionCache.IsValid ? endPositionCache.Value : endPositionCache.Value = Position + this.CurvePositionAt(1);
@@ -79,7 +96,13 @@ namespace osu.Game.Rulesets.Osu.Objects
         /// </summary>
         internal float LazyTravelDistance;
 
-        public List<IList<HitSampleInfo>> NodeSamples { get; set; } = new List<IList<HitSampleInfo>>();
+        /// <summary>
+        /// The time taken by the cursor upon completion of this <see cref="Slider"/> if it was hit
+        /// with as few movements as possible. This is set and used by difficulty calculation.
+        /// </summary>
+        internal double LazyTravelTime;
+
+        public IList<IList<HitSampleInfo>> NodeSamples { get; set; } = new List<IList<HitSampleInfo>>();
 
         [JsonIgnore]
         public IList<HitSampleInfo> TailSamples { get; private set; }
@@ -131,18 +154,17 @@ namespace osu.Game.Rulesets.Osu.Objects
 
         public Slider()
         {
-            SamplesBindable.CollectionChanged += (_, __) => updateNestedSamples();
+            SamplesBindable.CollectionChanged += (_, __) => UpdateNestedSamples();
             Path.Version.ValueChanged += _ => updateNestedPositions();
         }
 
-        protected override void ApplyDefaultsToSelf(ControlPointInfo controlPointInfo, BeatmapDifficulty difficulty)
+        protected override void ApplyDefaultsToSelf(ControlPointInfo controlPointInfo, IBeatmapDifficultyInfo difficulty)
         {
             base.ApplyDefaultsToSelf(controlPointInfo, difficulty);
 
             TimingControlPoint timingPoint = controlPointInfo.TimingPointAt(StartTime);
-            DifficultyControlPoint difficultyPoint = controlPointInfo.DifficultyPointAt(StartTime);
 
-            double scoringDistance = BASE_SCORING_DISTANCE * difficulty.SliderMultiplier * difficultyPoint.SpeedMultiplier;
+            double scoringDistance = BASE_SCORING_DISTANCE * difficulty.SliderMultiplier * DifficultyControlPoint.SliderVelocity;
 
             Velocity = scoringDistance / timingPoint.BeatLength;
             TickDistance = scoringDistance / difficulty.SliderTickRate * TickDistanceMultiplier;
@@ -152,8 +174,9 @@ namespace osu.Game.Rulesets.Osu.Objects
         {
             base.CreateNestedHitObjects(cancellationToken);
 
-            foreach (var e in
-                SliderEventGenerator.Generate(StartTime, SpanDuration, Velocity, TickDistance, Path.Distance, this.SpanCount(), LegacyLastTickOffset, cancellationToken))
+            var sliderEvents = SliderEventGenerator.Generate(StartTime, SpanDuration, Velocity, TickDistance, Path.Distance, this.SpanCount(), LegacyLastTickOffset, cancellationToken);
+
+            foreach (var e in sliderEvents)
             {
                 switch (e.Type)
                 {
@@ -175,7 +198,6 @@ namespace osu.Game.Rulesets.Osu.Objects
                             StartTime = e.Time,
                             Position = Position,
                             StackHeight = StackHeight,
-                            SampleControlPoint = SampleControlPoint,
                         });
                         break;
 
@@ -205,7 +227,7 @@ namespace osu.Game.Rulesets.Osu.Objects
                 }
             }
 
-            updateNestedSamples();
+            UpdateNestedSamples();
         }
 
         private void updateNestedPositions()
@@ -219,7 +241,7 @@ namespace osu.Game.Rulesets.Osu.Objects
                 TailCircle.Position = EndPosition;
         }
 
-        private void updateNestedSamples()
+        protected void UpdateNestedSamples()
         {
             var firstSample = Samples.FirstOrDefault(s => s.Name == HitSampleInfo.HIT_NORMAL)
                               ?? Samples.FirstOrDefault(); // TODO: remove this when guaranteed sort is present for samples (https://github.com/ppy/osu/issues/1933)

@@ -14,6 +14,7 @@ using osu.Game.Beatmaps;
 using osu.Game.Extensions;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
+using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Resources.Localisation.Web;
 using osuTK;
 
@@ -23,9 +24,9 @@ namespace osu.Game.Overlays.BeatmapSet
     {
         private readonly Statistic length, bpm, circleCount, sliderCount;
 
-        private BeatmapSetInfo beatmapSet;
+        private APIBeatmapSet beatmapSet;
 
-        public BeatmapSetInfo BeatmapSet
+        public APIBeatmapSet BeatmapSet
         {
             get => beatmapSet;
             set
@@ -38,16 +39,16 @@ namespace osu.Game.Overlays.BeatmapSet
             }
         }
 
-        private BeatmapInfo beatmap;
+        private IBeatmapInfo beatmapInfo;
 
-        public BeatmapInfo Beatmap
+        public IBeatmapInfo BeatmapInfo
         {
-            get => beatmap;
+            get => beatmapInfo;
             set
             {
-                if (value == beatmap) return;
+                if (value == beatmapInfo) return;
 
-                beatmap = value;
+                beatmapInfo = value;
 
                 updateDisplay();
             }
@@ -55,9 +56,9 @@ namespace osu.Game.Overlays.BeatmapSet
 
         private void updateDisplay()
         {
-            bpm.Value = BeatmapSet?.OnlineInfo?.BPM.ToLocalisableString(@"0.##") ?? (LocalisableString)"-";
+            bpm.Value = BeatmapSet?.BPM.ToLocalisableString(@"0.##") ?? (LocalisableString)"-";
 
-            if (beatmap == null)
+            if (beatmapInfo == null)
             {
                 length.Value = string.Empty;
                 circleCount.Value = string.Empty;
@@ -65,11 +66,13 @@ namespace osu.Game.Overlays.BeatmapSet
             }
             else
             {
-                length.TooltipText = BeatmapsetsStrings.ShowStatsTotalLength(TimeSpan.FromMilliseconds(beatmap.Length).ToFormattedDuration());
-                length.Value = TimeSpan.FromMilliseconds(beatmap.Length).ToFormattedDuration();
+                length.TooltipText = BeatmapsetsStrings.ShowStatsTotalLength(TimeSpan.FromMilliseconds(beatmapInfo.Length).ToFormattedDuration());
+                length.Value = TimeSpan.FromMilliseconds(beatmapInfo.Length).ToFormattedDuration();
 
-                circleCount.Value = beatmap.OnlineInfo.CircleCount.ToLocalisableString(@"N0");
-                sliderCount.Value = beatmap.OnlineInfo.SliderCount.ToLocalisableString(@"N0");
+                var onlineInfo = beatmapInfo as IBeatmapOnlineInfo;
+
+                circleCount.Value = (onlineInfo?.CircleCount ?? 0).ToLocalisableString(@"N0");
+                sliderCount.Value = (onlineInfo?.SliderCount ?? 0).ToLocalisableString(@"N0");
             }
         }
 

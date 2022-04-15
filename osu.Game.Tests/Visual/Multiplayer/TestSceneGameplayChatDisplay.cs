@@ -9,13 +9,14 @@ using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Testing;
+using osu.Game.Online.Rooms;
 using osu.Game.Screens.OnlinePlay.Multiplayer;
 using osu.Game.Screens.Play;
 using osuTK.Input;
 
 namespace osu.Game.Tests.Visual.Multiplayer
 {
-    public class TestSceneGameplayChatDisplay : MultiplayerTestScene
+    public class TestSceneGameplayChatDisplay : OsuManualInputManagerTestScene
     {
         private GameplayChatDisplay chatDisplay;
 
@@ -35,11 +36,9 @@ namespace osu.Game.Tests.Visual.Multiplayer
         }
 
         [SetUpSteps]
-        public override void SetUpSteps()
+        public void SetUpSteps()
         {
-            base.SetUpSteps();
-
-            AddStep("load chat display", () => Child = chatDisplay = new GameplayChatDisplay(SelectedRoom.Value)
+            AddStep("load chat display", () => Child = chatDisplay = new GameplayChatDisplay(new Room())
             {
                 Anchor = Anchor.Centre,
                 Origin = Anchor.Centre,
@@ -90,6 +89,18 @@ namespace osu.Game.Tests.Visual.Multiplayer
             assertChatFocused(false);
             AddStep("press tab", () => InputManager.Key(Key.Tab));
             assertChatFocused(true);
+        }
+
+        [Test]
+        public void TestFocusLostOnBackKey()
+        {
+            setLocalUserPlaying(true);
+
+            assertChatFocused(false);
+            AddStep("press tab", () => InputManager.Key(Key.Tab));
+            assertChatFocused(true);
+            AddStep("press escape", () => InputManager.Key(Key.Escape));
+            assertChatFocused(false);
         }
 
         [Test]

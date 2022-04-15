@@ -8,12 +8,16 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Game.Beatmaps;
 using osu.Game.Graphics;
 using osu.Game.Online.Multiplayer;
+using osu.Game.Online.Rooms;
 using osu.Game.Online.Spectator;
 using osu.Game.Screens.Play;
 using osu.Game.Screens.Play.HUD;
 using osu.Game.Screens.Spectate;
+using osu.Game.Users;
+using osuTK;
 
 namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
 {
@@ -26,18 +30,17 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
         public override bool DisallowExternalBeatmapRulesetChanges => true;
 
         // We are managing our own adjustments. For now, this happens inside the Player instances themselves.
-        public override bool AllowTrackAdjustments => false;
+        public override bool? AllowTrackAdjustments => false;
 
         /// <summary>
         /// Whether all spectating players have finished loading.
         /// </summary>
         public bool AllPlayersLoaded => instances.All(p => p?.PlayerLoaded == true);
 
-        [Resolved]
-        private OsuColour colours { get; set; }
+        protected override UserActivity InitialActivity => new UserActivity.SpectatingMultiplayerGame(Beatmap.Value.BeatmapInfo, Ruleset.Value);
 
         [Resolved]
-        private SpectatorClient spectatorClient { get; set; }
+        private OsuColour colours { get; set; }
 
         [Resolved]
         private MultiplayerClient multiplayerClient { get; set; }
@@ -50,15 +53,18 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
         private PlayerArea currentAudioSource;
         private bool canStartMasterClock;
 
+        private readonly Room room;
         private readonly MultiplayerRoomUser[] users;
 
         /// <summary>
         /// Creates a new <see cref="MultiSpectatorScreen"/>.
         /// </summary>
+        /// <param name="room">The room.</param>
         /// <param name="users">The players to spectate.</param>
-        public MultiSpectatorScreen(MultiplayerRoomUser[] users)
+        public MultiSpectatorScreen(Room room, MultiplayerRoomUser[] users)
             : base(users.Select(u => u.UserID).ToArray())
         {
+            this.room = room;
             this.users = users;
 
             instances = new PlayerArea[Users.Count];
@@ -67,10 +73,10 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
         [BackgroundDependencyLoader]
         private void load()
         {
-            Container leaderboardContainer;
+            FillFlowContainer leaderboardFlow;
             Container scoreDisplayContainer;
 
-            masterClockContainer = new MasterGameplayClockContainer(Beatmap.Value, 0);
+            masterClockContainer = CreateMasterGameplayClockContainer(Beatmap.Value);
 
             InternalChildren = new[]
             {
@@ -99,10 +105,13 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
                                 {
                                     new Drawable[]
                                     {
-                                        leaderboardContainer = new Container
+                                        leaderboardFlow = new FillFlowContainer
                                         {
-                                            RelativeSizeAxes = Axes.Y,
-                                            AutoSizeAxes = Axes.X
+                                            Anchor = Anchor.CentreLeft,
+                                            Origin = Anchor.CentreLeft,
+                                            AutoSizeAxes = Axes.Both,
+                                            Direction = FillDirection.Vertical,
+                                            Spacing = new Vector2(5)
                                         },
                                         grid = new PlayerGrid { RelativeSizeAxes = Axes.Both }
                                     }
@@ -124,17 +133,15 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
             var scoreProcessor = Ruleset.Value.CreateInstance().CreateScoreProcessor();
             scoreProcessor.ApplyBeatmap(playableBeatmap);
 
-            LoadComponentAsync(leaderboard = new MultiSpectatorLeaderboard(scoreProcessor, users)
+            LoadComponentAsync(leaderboard = new MultiSpectatorLeaderboard(Ruleset.Value, scoreProcessor, users)
             {
                 Expanded = { Value = true },
-                Anchor = Anchor.CentreLeft,
-                Origin = Anchor.CentreLeft,
             }, l =>
             {
                 foreach (var instance in instances)
                     leaderboard.AddClock(instance.UserId, instance.GameplayClock);
 
-                leaderboardContainer.Add(leaderboard);
+                leaderboardFlow.Insert(0, leaderboard);
 
                 if (leaderboard.TeamScores.Count == 2)
                 {
@@ -145,6 +152,11 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
                     }, scoreDisplayContainer.Add);
                 }
             });
+
+            LoadComponentAsync(new GameplayChatDisplay(room)
+            {
+                Expanded = { Value = true },
+            }, chat => leaderboardFlow.Insert(1, chat));
         }
 
         protected override void LoadComplete()
@@ -152,7 +164,6 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
             base.LoadComplete();
 
             masterClockContainer.Reset();
-            masterClockContainer.Stop();
 
             syncManager.ReadyToStart += onReadyToStart;
             syncManager.MasterState.BindValueChanged(onMasterStateChanged, true);
@@ -180,14 +191,14 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
         {
             // Seek the master clock to the gameplay time.
             // This is chosen as the first available frame in the players' replays, which matches the seek by each individual SpectatorPlayer.
-            var startTime = instances.Where(i => i.Score != null)
-                                     .SelectMany(i => i.Score.Replay.Frames)
-                                     .Select(f => f.Time)
-                                     .DefaultIfEmpty(0)
-                                     .Min();
+            double startTime = instances.Where(i => i.Score != null)
+                                        .SelectMany(i => i.Score.Replay.Frames)
+                                        .Select(f => f.Time)
+                                        .DefaultIfEmpty(0)
+                                        .Min();
 
-            masterClockContainer.Seek(startTime);
-            masterClockContainer.Start();
+            masterClockContainer.StartTime = startTime;
+            masterClockContainer.Reset(true);
 
             // Although the clock has been started, this flag is set to allow for later synchronisation state changes to also be able to start it.
             canStartMasterClock = true;
@@ -209,15 +220,20 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
             }
         }
 
-        protected override void OnUserStateChanged(int userId, SpectatorState spectatorState)
+        protected override void OnNewPlayingUserState(int userId, SpectatorState spectatorState)
         {
         }
 
-        protected override void StartGameplay(int userId, GameplayState gameplayState)
-            => instances.Single(i => i.UserId == userId).LoadScore(gameplayState.Score);
+        protected override void StartGameplay(int userId, SpectatorGameplayState spectatorGameplayState)
+            => instances.Single(i => i.UserId == userId).LoadScore(spectatorGameplayState.Score);
 
-        protected override void EndGameplay(int userId)
+        protected override void EndGameplay(int userId, SpectatorState state)
         {
+            // Allowed passed/failed users to complete their remaining replay frames.
+            // The failed state isn't really possible in multiplayer (yet?) but is added here just for safety in case it starts being used.
+            if (state.State == SpectatedUserState.Passed || state.State == SpectatedUserState.Failed)
+                return;
+
             RemoveUser(userId);
 
             var instance = instances.Single(i => i.UserId == userId);
@@ -229,9 +245,16 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Spectate
 
         public override bool OnBackButton()
         {
-            // On a manual exit, set the player state back to idle.
-            multiplayerClient.ChangeState(MultiplayerUserState.Idle);
+            if (multiplayerClient.Room == null)
+                return base.OnBackButton();
+
+            // On a manual exit, set the player back to idle unless gameplay has finished.
+            if (multiplayerClient.Room.State != MultiplayerRoomState.Open)
+                multiplayerClient.ChangeState(MultiplayerUserState.Idle);
+
             return base.OnBackButton();
         }
+
+        protected virtual MasterGameplayClockContainer CreateMasterGameplayClockContainer(WorkingBeatmap beatmap) => new MasterGameplayClockContainer(beatmap, 0);
     }
 }

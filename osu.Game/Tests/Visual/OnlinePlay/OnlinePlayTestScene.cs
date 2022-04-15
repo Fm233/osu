@@ -7,6 +7,9 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Game.Database;
+using osu.Game.Beatmaps;
+using osu.Game.Online.API;
 using osu.Game.Online.Rooms;
 using osu.Game.Screens.OnlinePlay;
 
@@ -21,17 +24,19 @@ namespace osu.Game.Tests.Visual.OnlinePlay
         public IRoomManager RoomManager => OnlinePlayDependencies?.RoomManager;
         public OngoingOperationTracker OngoingOperationTracker => OnlinePlayDependencies?.OngoingOperationTracker;
         public OnlinePlayBeatmapAvailabilityTracker AvailabilityTracker => OnlinePlayDependencies?.AvailabilityTracker;
+        public TestUserLookupCache UserLookupCache => OnlinePlayDependencies?.UserLookupCache;
+        public BeatmapLookupCache BeatmapLookupCache => OnlinePlayDependencies?.BeatmapLookupCache;
 
         /// <summary>
         /// All dependencies required for online play components and screens.
         /// </summary>
         protected OnlinePlayTestSceneDependencies OnlinePlayDependencies => dependencies?.OnlinePlayDependencies;
 
-        private DelegatedDependencyContainer dependencies;
-
         protected override Container<Drawable> Content => content;
+
         private readonly Container content;
         private readonly Container drawableDependenciesContainer;
+        private DelegatedDependencyContainer dependencies;
 
         protected OnlinePlayTestScene()
         {
@@ -42,7 +47,7 @@ namespace osu.Game.Tests.Visual.OnlinePlay
             });
         }
 
-        protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
+        protected sealed override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
         {
             dependencies = new DelegatedDependencyContainer(base.CreateChildDependencies(parent));
             return dependencies;
@@ -55,6 +60,14 @@ namespace osu.Game.Tests.Visual.OnlinePlay
             drawableDependenciesContainer.Clear();
             dependencies.OnlinePlayDependencies = CreateOnlinePlayDependencies();
             drawableDependenciesContainer.AddRange(OnlinePlayDependencies.DrawableComponents);
+
+            var handler = OnlinePlayDependencies.RequestsHandler;
+
+            // Resolving the BeatmapManager in the test scene will inject the game-wide BeatmapManager, while many test scenes cache their own BeatmapManager instead.
+            // To get around this, the BeatmapManager is looked up from the dependencies provided to the children of the test scene instead.
+            var beatmapManager = dependencies.Get<BeatmapManager>();
+
+            ((DummyAPIAccess)API).HandleRequest = request => handler.HandleRequest(request, API.LocalUser.Value, beatmapManager);
         });
 
         /// <summary>

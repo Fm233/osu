@@ -25,7 +25,17 @@ namespace osu.Game.Localisation
         public static LocalisableString VolumeHeader => new TranslatableString(getKey(@"volume_header"), @"Volume");
 
         /// <summary>
+        /// "Output device"
+        /// </summary>
+        public static LocalisableString OutputDevice => new TranslatableString(getKey(@"output_device"), @"Output device");
+
+        /// <summary>
         /// "Master"
+        /// </summary>
+        public static LocalisableString PositionalLevel => new TranslatableString(getKey(@"positional_hitsound_audio_level"), @"Hitsound stereo separation");
+
+        /// <summary>
+        /// "Level"
         /// </summary>
         public static LocalisableString MasterVolume => new TranslatableString(getKey(@"master_volume"), @"Master");
 

@@ -7,6 +7,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Input.Bindings;
+using osu.Framework.Input.Events;
 using osu.Game.Rulesets.Taiko.Objects;
 using osu.Game.Rulesets.Taiko.UI;
 using osu.Game.Skinning;
@@ -68,7 +69,7 @@ namespace osu.Game.Rulesets.Taiko.Skinning.Legacy
             // because the right half is flipped, we need to position using width - position to get the true "topleft" origin position
             float negativeScaleAdjust = content.Width / ratio;
 
-            if (skin.GetConfig<LegacySkinConfiguration.LegacySetting, decimal>(LegacySkinConfiguration.LegacySetting.Version)?.Value >= 2.1m)
+            if (skin.GetConfig<SkinConfiguration.LegacySetting, decimal>(SkinConfiguration.LegacySetting.Version)?.Value >= 2.1m)
             {
                 left.Centre.Position = new Vector2(0, taiko_bar_y) * ratio;
                 right.Centre.Position = new Vector2(negativeScaleAdjust - 56, taiko_bar_y) * ratio;
@@ -141,16 +142,16 @@ namespace osu.Game.Rulesets.Taiko.Skinning.Legacy
                 Centre.Texture = skin.GetTexture(@"taiko-drum-inner");
             }
 
-            public bool OnPressed(TaikoAction action)
+            public bool OnPressed(KeyBindingPressEvent<TaikoAction> e)
             {
                 Drawable target = null;
 
-                if (action == CentreAction)
+                if (e.Action == CentreAction)
                 {
                     target = Centre;
                     sampleTriggerSource.Play(HitType.Centre);
                 }
-                else if (action == RimAction)
+                else if (e.Action == RimAction)
                 {
                     target = Rim;
                     sampleTriggerSource.Play(HitType.Rim);
@@ -173,7 +174,7 @@ namespace osu.Game.Rulesets.Taiko.Skinning.Legacy
                 return false;
             }
 
-            public void OnReleased(TaikoAction action)
+            public void OnReleased(KeyBindingReleaseEvent<TaikoAction> e)
             {
             }
         }

@@ -11,6 +11,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Input.Bindings;
+using osu.Framework.Input.Events;
 using osu.Framework.Screens;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
@@ -286,7 +287,7 @@ namespace osu.Game.Screens.Ranking
                 detachedPanelContainer.Add(expandedPanel);
 
                 // Move into its original location in the local container first, then to the final location.
-                var origLocation = detachedPanelContainer.ToLocalSpace(screenSpacePos).X;
+                float origLocation = detachedPanelContainer.ToLocalSpace(screenSpacePos).X;
                 expandedPanel.MoveToX(origLocation)
                              .Then()
                              .MoveToX(StatisticsPanel.SIDE_PADDING, 150, Easing.OutQuint);
@@ -310,10 +311,10 @@ namespace osu.Game.Screens.Ranking
                 ScorePanelList.Attach(detachedPanel);
 
                 // Move into its original location in the attached container first, then to the final location.
-                var origLocation = detachedPanel.Parent.ToLocalSpace(screenSpacePos);
-                detachedPanel.MoveTo(origLocation)
+                float origLocation = detachedPanel.Parent.ToLocalSpace(screenSpacePos).X;
+                detachedPanel.MoveToX(origLocation)
                              .Then()
-                             .MoveTo(new Vector2(0, origLocation.Y), 150, Easing.OutQuint);
+                             .MoveToX(0, 150, Easing.OutQuint);
 
                 // Show contracted panels.
                 foreach (var contracted in ScorePanelList.GetScorePanels().Where(p => p.State == PanelState.Contracted))
@@ -327,9 +328,12 @@ namespace osu.Game.Screens.Ranking
             }
         }
 
-        public bool OnPressed(GlobalAction action)
+        public bool OnPressed(KeyBindingPressEvent<GlobalAction> e)
         {
-            switch (action)
+            if (e.Repeat)
+                return false;
+
+            switch (e.Action)
             {
                 case GlobalAction.Select:
                     statisticsPanel.ToggleVisibility();
@@ -339,7 +343,7 @@ namespace osu.Game.Screens.Ranking
             return false;
         }
 
-        public void OnReleased(GlobalAction action)
+        public void OnReleased(KeyBindingReleaseEvent<GlobalAction> e)
         {
         }
 

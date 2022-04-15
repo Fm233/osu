@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Sample;
@@ -43,6 +44,11 @@ namespace osu.Game.Screens.Menu
 
         private DecoupleableInterpolatingFramedClock decoupledClock;
         private TrianglesIntroSequence intro;
+
+        public IntroTriangles([CanBeNull] Func<MainMenu> createNextScreen = null)
+            : base(createNextScreen)
+        {
+        }
 
         [BackgroundDependencyLoader]
         private void load()
@@ -87,6 +93,9 @@ namespace osu.Game.Screens.Menu
         {
             base.OnSuspending(next);
 
+            // ensure the background is shown, even if the TriangleIntroSequence failed to do so.
+            background.ApplyToBackground(b => b.Show());
+
             // important as there is a clock attached to a track which will likely be disposed before returning to this screen.
             intro.Expire();
         }
@@ -127,7 +136,7 @@ namespace osu.Game.Screens.Menu
             private OsuGameBase game { get; set; }
 
             [BackgroundDependencyLoader]
-            private void load(TextureStore textures)
+            private void load()
             {
                 InternalChildren = new Drawable[]
                 {
@@ -387,6 +396,7 @@ namespace osu.Game.Screens.Menu
                 public class OutlineTriangle : BufferedContainer
                 {
                     public OutlineTriangle(bool outlineOnly, float size)
+                        : base(cachedFrameBuffer: true)
                     {
                         Size = new Vector2(size);
 
@@ -408,7 +418,6 @@ namespace osu.Game.Screens.Menu
                         }
 
                         Blending = BlendingParameters.Additive;
-                        CacheDrawnFrameBuffer = true;
                     }
                 }
             }

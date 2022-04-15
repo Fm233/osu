@@ -29,11 +29,7 @@ namespace osu.Game.Screens.Edit.Compose.Components
             // bring in updates from selection changes
             EditorBeatmap.HitObjectUpdated += _ => Scheduler.AddOnce(UpdateTernaryStates);
 
-            SelectedItems.BindTo(EditorBeatmap.SelectedHitObjects);
-            SelectedItems.CollectionChanged += (sender, args) =>
-            {
-                Scheduler.AddOnce(UpdateTernaryStates);
-            };
+            SelectedItems.CollectionChanged += (sender, args) => Scheduler.AddOnce(UpdateTernaryStates);
         }
 
         protected override void DeleteItems(IEnumerable<HitObject> items) => EditorBeatmap.RemoveRange(items);
@@ -55,7 +51,7 @@ namespace osu.Game.Screens.Edit.Compose.Components
         /// </summary>
         private void createStateBindables()
         {
-            foreach (var sampleName in HitSampleInfo.AllAdditions)
+            foreach (string sampleName in HitSampleInfo.AllAdditions)
             {
                 var bindable = new Bindable<TernaryState>
                 {
@@ -102,7 +98,7 @@ namespace osu.Game.Screens.Edit.Compose.Components
         {
             SelectionNewComboState.Value = GetStateFromSelection(SelectedItems.OfType<IHasComboInformation>(), h => h.NewCombo);
 
-            foreach (var (sampleName, bindable) in SelectionSampleStates)
+            foreach ((string sampleName, var bindable) in SelectionSampleStates)
             {
                 bindable.Value = GetStateFromSelection(SelectedItems, h => h.Samples.Any(s => s.Name == sampleName));
             }

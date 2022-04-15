@@ -9,13 +9,13 @@
       ]
     },
     "jetbrains.resharper.globaltools": {
-      "version": "2020.3.2",
+      "version": "2022.1.0-eap10",
       "commands": [
         "jb"
       ]
     },
-    "smoogipoo.nvika": {
-      "version": "1.0.1",
+    "nvika": {
+      "version": "2.2.0",
       "commands": [
         "nvika"
       ]
@@ -27,7 +27,7 @@
       ]
     },
     "ppy.localisationanalyser.tools": {
-      "version": "2021.725.0",
+      "version": "2022.320.0",
       "commands": [
         "localisation"
       ]

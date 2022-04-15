@@ -67,7 +67,8 @@ namespace osu.Game.Overlays.Settings.Sections.Input
                 },
                 new SettingsCheckbox
                 {
-                    LabelText = MouseSettingsStrings.DisableMouseWheel,
+                    LabelText = MouseSettingsStrings.DisableMouseWheelVolumeAdjust,
+                    TooltipText = MouseSettingsStrings.DisableMouseWheelVolumeAdjustTooltip,
                     Current = osuConfig.GetBindable<bool>(OsuSetting.MouseDisableWheel)
                 },
                 new SettingsCheckbox
@@ -86,7 +87,7 @@ namespace osu.Game.Overlays.Settings.Sections.Input
 
             handlerSensitivity.BindValueChanged(val =>
             {
-                var disabled = localSensitivity.Disabled;
+                bool disabled = localSensitivity.Disabled;
 
                 localSensitivity.Disabled = false;
                 localSensitivity.Value = val.NewValue;
@@ -97,7 +98,7 @@ namespace osu.Game.Overlays.Settings.Sections.Input
 
             windowMode.BindValueChanged(mode =>
             {
-                var isFullscreen = mode.NewValue == WindowMode.Fullscreen;
+                bool isFullscreen = mode.NewValue == WindowMode.Fullscreen;
 
                 if (isFullscreen)
                 {

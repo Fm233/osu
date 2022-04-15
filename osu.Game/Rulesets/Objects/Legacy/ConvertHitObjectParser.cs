@@ -130,7 +130,7 @@ namespace osu.Game.Rulesets.Objects.Legacy
                         if (i >= adds.Length)
                             break;
 
-                        int.TryParse(adds[i], out var sound);
+                        int.TryParse(adds[i], out int sound);
                         nodeSoundTypes[i] = (LegacyHitSoundType)sound;
                     }
                 }
@@ -188,12 +188,12 @@ namespace osu.Game.Rulesets.Objects.Legacy
             string[] split = str.Split(':');
 
             var bank = (LegacySampleBank)Parsing.ParseInt(split[0]);
-            var addbank = (LegacySampleBank)Parsing.ParseInt(split[1]);
+            var addBank = (LegacySampleBank)Parsing.ParseInt(split[1]);
 
             string stringBank = bank.ToString().ToLowerInvariant();
             if (stringBank == @"none")
                 stringBank = null;
-            string stringAddBank = addbank.ToString().ToLowerInvariant();
+            string stringAddBank = addBank.ToString().ToLowerInvariant();
             if (stringAddBank == @"none")
                 stringAddBank = null;
 
@@ -408,7 +408,7 @@ namespace osu.Game.Rulesets.Objects.Legacy
         /// <param name="nodeSamples">The samples to be played when the slider nodes are hit. This includes the head and tail of the slider.</param>
         /// <returns>The hit object.</returns>
         protected abstract HitObject CreateSlider(Vector2 position, bool newCombo, int comboOffset, PathControlPoint[] controlPoints, double? length, int repeatCount,
-                                                  List<IList<HitSampleInfo>> nodeSamples);
+                                                  IList<IList<HitSampleInfo>> nodeSamples);
 
         /// <summary>
         /// Creates a legacy Spinner-type hit object.
@@ -481,7 +481,7 @@ namespace osu.Game.Rulesets.Objects.Legacy
             /// </summary>
             /// <remarks>
             /// Layered hit samples are automatically added in all modes (except osu!mania), but can be disabled
-            /// using the <see cref="LegacySkinConfiguration.LegacySetting.LayeredHitSounds"/> skin config option.
+            /// using the <see cref="SkinConfiguration.LegacySetting.LayeredHitSounds"/> skin config option.
             /// </remarks>
             public readonly bool IsLayered;
 
@@ -500,6 +500,9 @@ namespace osu.Game.Rulesets.Objects.Legacy
                 => new LegacyHitSampleInfo(newName.GetOr(Name), newBank.GetOr(Bank), newVolume.GetOr(Volume), newCustomSampleBank.GetOr(CustomSampleBank), newIsLayered.GetOr(IsLayered));
 
             public bool Equals(LegacyHitSampleInfo? other)
+                // The additions to equality checks here are *required* to ensure that pooling works correctly.
+                // Of note, `IsLayered` may cause the usage of `SampleVirtual` instead of an actual sample (in cases playback is not required).
+                // Removing it would cause samples which may actually require playback to potentially source for a `SampleVirtual` sample pool.
                 => base.Equals(other) && CustomSampleBank == other.CustomSampleBank && IsLayered == other.IsLayered;
 
             public override bool Equals(object? obj)

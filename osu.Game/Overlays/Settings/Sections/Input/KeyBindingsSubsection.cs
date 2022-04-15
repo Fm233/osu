@@ -7,7 +7,6 @@ using osu.Framework.Allocation;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
 using osu.Game.Database;
-using osu.Game.Graphics.UserInterface;
 using osu.Game.Input.Bindings;
 using osu.Game.Rulesets;
 using osu.Game.Localisation;
@@ -19,7 +18,7 @@ namespace osu.Game.Overlays.Settings.Sections.Input
     {
         protected IEnumerable<Framework.Input.Bindings.KeyBinding> Defaults;
 
-        protected RulesetInfo Ruleset;
+        public RulesetInfo Ruleset { get; protected set; }
 
         private readonly int? variant;
 
@@ -27,19 +26,17 @@ namespace osu.Game.Overlays.Settings.Sections.Input
         {
             this.variant = variant;
 
-            FlowContent.Spacing = new Vector2(0, 1);
-            FlowContent.Padding = new MarginPadding { Left = SettingsPanel.CONTENT_MARGINS, Right = SettingsPanel.CONTENT_MARGINS };
+            FlowContent.Spacing = new Vector2(0, 3);
         }
 
         [BackgroundDependencyLoader]
-        private void load(RealmContextFactory realmFactory)
+        private void load(RealmAccess realm)
         {
-            var rulesetId = Ruleset?.ID;
+            string rulesetName = Ruleset?.ShortName;
 
-            List<RealmKeyBinding> bindings;
-
-            using (var usage = realmFactory.GetForRead())
-                bindings = usage.Realm.All<RealmKeyBinding>().Where(b => b.RulesetID == rulesetId && b.Variant == variant).Detach();
+            var bindings = realm.Run(r => r.All<RealmKeyBinding>()
+                                           .Where(b => b.RulesetName == rulesetName && b.Variant == variant)
+                                           .Detach());
 
             foreach (var defaultGroup in Defaults.GroupBy(d => d.Action))
             {
@@ -60,14 +57,14 @@ namespace osu.Game.Overlays.Settings.Sections.Input
         }
     }
 
-    public class ResetButton : DangerousTriangleButton
+    public class ResetButton : DangerousSettingsButton
     {
         [BackgroundDependencyLoader]
         private void load()
         {
             Text = InputSettingsStrings.ResetSectionButton;
             RelativeSizeAxes = Axes.X;
-            Width = 0.5f;
+            Width = 0.8f;
             Anchor = Anchor.TopCentre;
             Origin = Anchor.TopCentre;
             Margin = new MarginPadding { Top = 15 };
@@ -75,5 +72,8 @@ namespace osu.Game.Overlays.Settings.Sections.Input
 
             Content.CornerRadius = 5;
         }
+
+        // Empty FilterTerms so that the ResetButton is visible only when the whole subsection is visible.
+        public override IEnumerable<string> FilterTerms => Enumerable.Empty<string>();
     }
 }

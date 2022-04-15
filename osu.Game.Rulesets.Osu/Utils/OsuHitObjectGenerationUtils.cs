@@ -11,7 +11,7 @@ using osuTK;
 
 namespace osu.Game.Rulesets.Osu.Utils
 {
-    public static class OsuHitObjectGenerationUtils
+    public static partial class OsuHitObjectGenerationUtils
     {
         // The relative distance to the edge of the playfield before objects' positions should start to "turn around" and curve towards the middle.
         // The closer the hit objects draw to the border, the sharper the turn
@@ -40,7 +40,7 @@ namespace osu.Game.Rulesets.Osu.Utils
         /// <returns>The new position of the hit object, relative to the previous one.</returns>
         public static Vector2 RotateAwayFromEdge(Vector2 prevObjectPos, Vector2 posRelativeToPrev, float rotationRatio = 0.5f)
         {
-            var relativeRotationDistance = 0f;
+            float relativeRotationDistance = 0f;
 
             if (prevObjectPos.X < playfield_middle.X)
             {
@@ -88,16 +88,16 @@ namespace osu.Game.Rulesets.Osu.Utils
         /// <returns>The rotated vector.</returns>
         public static Vector2 RotateVectorTowardsVector(Vector2 initial, Vector2 destination, float rotationRatio)
         {
-            var initialAngleRad = MathF.Atan2(initial.Y, initial.X);
-            var destAngleRad = MathF.Atan2(destination.Y, destination.X);
+            float initialAngleRad = MathF.Atan2(initial.Y, initial.X);
+            float destAngleRad = MathF.Atan2(destination.Y, destination.X);
 
-            var diff = destAngleRad - initialAngleRad;
+            float diff = destAngleRad - initialAngleRad;
 
             while (diff < -MathF.PI) diff += 2 * MathF.PI;
 
             while (diff > MathF.PI) diff -= 2 * MathF.PI;
 
-            var finalAngleRad = initialAngleRad + rotationRatio * diff;
+            float finalAngleRad = initialAngleRad + rotationRatio * diff;
 
             return new Vector2(
                 initial.Length * MathF.Cos(finalAngleRad),

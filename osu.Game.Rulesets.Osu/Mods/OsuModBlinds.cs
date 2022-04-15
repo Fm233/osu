@@ -29,6 +29,8 @@ namespace osu.Game.Rulesets.Osu.Mods
         public override ModType Type => ModType.DifficultyIncrease;
 
         public override double ScoreMultiplier => 1.12;
+        public override Type[] IncompatibleMods => new[] { typeof(OsuModFlashlight) };
+
         private DrawableOsuBlinds blinds;
 
         public void ApplyToDrawableRuleset(DrawableRuleset<OsuHitObject> drawableRuleset)
@@ -170,7 +172,7 @@ namespace osu.Game.Rulesets.Osu.Mods
                 base.LoadComplete();
 
                 var firstObj = beatmap.HitObjects[0];
-                var startDelay = firstObj.StartTime - firstObj.TimePreempt;
+                double startDelay = firstObj.StartTime - firstObj.TimePreempt;
 
                 using (BeginAbsoluteSequence(startDelay + break_close_late))
                     leaveBreak();

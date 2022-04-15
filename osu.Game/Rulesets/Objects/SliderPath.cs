@@ -250,13 +250,13 @@ namespace osu.Game.Rulesets.Objects
                     if (subControlPoints.Length != 3)
                         break;
 
-                    List<Vector2> subpath = PathApproximator.ApproximateCircularArc(subControlPoints);
+                    List<Vector2> subPath = PathApproximator.ApproximateCircularArc(subControlPoints);
 
                     // If for some reason a circular arc could not be fit to the 3 given points, fall back to a numerically stable bezier approximation.
-                    if (subpath.Count == 0)
+                    if (subPath.Count == 0)
                         break;
 
-                    return subpath;
+                    return subPath;
 
                 case PathType.Catmull:
                     return PathApproximator.ApproximateCatmull(subControlPoints);
@@ -280,6 +280,13 @@ namespace osu.Game.Rulesets.Objects
 
             if (ExpectedDistance.Value is double expectedDistance && calculatedLength != expectedDistance)
             {
+                // In osu-stable, if the last two control points of a slider are equal, extension is not performed.
+                if (ControlPoints.Count >= 2 && ControlPoints[^1].Position == ControlPoints[^2].Position && expectedDistance > calculatedLength)
+                {
+                    cumulativeLength.Add(calculatedLength);
+                    return;
+                }
+
                 // The last length is always incorrect
                 cumulativeLength.RemoveAt(cumulativeLength.Count - 1);
 

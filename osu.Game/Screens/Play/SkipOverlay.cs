@@ -144,9 +144,12 @@ namespace osu.Game.Screens.Play
             return base.OnMouseMove(e);
         }
 
-        public bool OnPressed(GlobalAction action)
+        public bool OnPressed(KeyBindingPressEvent<GlobalAction> e)
         {
-            switch (action)
+            if (e.Repeat)
+                return false;
+
+            switch (e.Action)
             {
                 case GlobalAction.SkipCutscene:
                     if (!button.Enabled.Value)
@@ -159,7 +162,7 @@ namespace osu.Game.Screens.Play
             return false;
         }
 
-        public void OnReleased(GlobalAction action)
+        public void OnReleased(KeyBindingReleaseEvent<GlobalAction> e)
         {
         }
 
@@ -270,7 +273,7 @@ namespace osu.Game.Screens.Play
                 colourNormal = colours.Yellow;
                 colourHover = colours.YellowDark;
 
-                sampleConfirm = audio.Samples.Get(@"SongSelect/confirm-selection");
+                sampleConfirm = audio.Samples.Get(@"UI/submit-select");
 
                 Children = new Drawable[]
                 {

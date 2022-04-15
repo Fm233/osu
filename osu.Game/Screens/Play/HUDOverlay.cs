@@ -11,11 +11,13 @@ using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Bindings;
+using osu.Framework.Input.Events;
 using osu.Game.Configuration;
 using osu.Game.Input.Bindings;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Notifications;
 using osu.Game.Rulesets.Mods;
+using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.UI;
 using osu.Game.Screens.Play.HUD;
 using osu.Game.Skinning;
@@ -45,7 +47,7 @@ namespace osu.Game.Screens.Play
         public readonly HoldForMenuButton HoldToQuit;
         public readonly PlayerSettingsOverlay PlayerSettingsOverlay;
 
-        public Bindable<bool> ShowHealthbar = new Bindable<bool>(true);
+        public Bindable<bool> ShowHealthBar = new Bindable<bool>(true);
 
         private readonly DrawableRuleset drawableRuleset;
         private readonly IReadOnlyList<Mod> mods;
@@ -82,10 +84,7 @@ namespace osu.Game.Screens.Play
             Children = new Drawable[]
             {
                 CreateFailingLayer(),
-                mainComponents = new SkinnableTargetContainer(SkinnableTarget.MainHUDComponents)
-                {
-                    RelativeSizeAxes = Axes.Both,
-                },
+                mainComponents = new MainComponentsContainer(),
                 topRightElements = new FillFlowContainer
                 {
                     Anchor = Anchor.TopRight,
@@ -257,7 +256,7 @@ namespace osu.Game.Screens.Play
 
         protected FailingLayer CreateFailingLayer() => new FailingLayer
         {
-            ShowHealth = { BindTarget = ShowHealthbar }
+            ShowHealth = { BindTarget = ShowHealthBar }
         };
 
         protected KeyCounterDisplay CreateKeyCounter() => new KeyCounterDisplay
@@ -280,9 +279,12 @@ namespace osu.Game.Screens.Play
 
         protected PlayerSettingsOverlay CreatePlayerSettingsOverlay() => new PlayerSettingsOverlay();
 
-        public bool OnPressed(GlobalAction action)
+        public bool OnPressed(KeyBindingPressEvent<GlobalAction> e)
         {
-            switch (action)
+            if (e.Repeat)
+                return false;
+
+            switch (e.Action)
             {
                 case GlobalAction.HoldForHUD:
                     holdingForHUD = true;
@@ -311,14 +313,38 @@ namespace osu.Game.Screens.Play
             return false;
         }
 
-        public void OnReleased(GlobalAction action)
+        public void OnReleased(KeyBindingReleaseEvent<GlobalAction> e)
         {
-            switch (action)
+            switch (e.Action)
             {
                 case GlobalAction.HoldForHUD:
                     holdingForHUD = false;
                     updateVisibility();
                     break;
+            }
+        }
+
+        private class MainComponentsContainer : SkinnableTargetContainer
+        {
+            private Bindable<ScoringMode> scoringMode;
+
+            [Resolved]
+            private OsuConfigManager config { get; set; }
+
+            public MainComponentsContainer()
+                : base(SkinnableTarget.MainHUDComponents)
+            {
+                RelativeSizeAxes = Axes.Both;
+            }
+
+            protected override void LoadComplete()
+            {
+                base.LoadComplete();
+
+                // When the scoring mode changes, relative positions of elements may change (see DefaultSkin.GetDrawableComponent).
+                // This is a best effort implementation for cases where users haven't customised layouts.
+                scoringMode = config.GetBindable<ScoringMode>(OsuSetting.ScoreDisplayMode);
+                scoringMode.BindValueChanged(val => Reload());
             }
         }
     }

@@ -15,21 +15,22 @@ namespace osu.Game.Screens.Play.PlayerSettings
     {
         public OsuSliderBar<T> Bar => (OsuSliderBar<T>)Control;
 
-        protected override Drawable CreateControl() => new Sliderbar
-        {
-            Margin = new MarginPadding { Top = 5, Bottom = 5 },
-            RelativeSizeAxes = Axes.X
-        };
+        protected override Drawable CreateControl() => new SliderBar();
 
-        private class Sliderbar : OsuSliderBar<T>
+        protected class SliderBar : OsuSliderBar<T>
         {
+            public SliderBar()
+            {
+                RelativeSizeAxes = Axes.X;
+            }
+
             [BackgroundDependencyLoader]
             private void load(OsuColour colours)
             {
                 AccentColour = colours.Yellow;
                 Nub.AccentColour = colours.Yellow;
                 Nub.GlowingAccentColour = colours.YellowLighter;
-                Nub.GlowColour = colours.YellowDarker;
+                Nub.GlowColour = colours.YellowDark;
             }
         }
     }

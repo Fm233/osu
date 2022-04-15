@@ -66,7 +66,7 @@ namespace osu.Game.Rulesets.Catch.Skinning.Legacy
                         return null;
 
                     case CatchSkinComponents.Catcher:
-                        var version = GetConfig<LegacySkinConfiguration.LegacySetting, decimal>(LegacySkinConfiguration.LegacySetting.Version)?.Value ?? 1;
+                        decimal version = GetConfig<SkinConfiguration.LegacySetting, decimal>(SkinConfiguration.LegacySetting.Version)?.Value ?? 1;
 
                         if (version < 2.3m)
                         {
@@ -81,7 +81,7 @@ namespace osu.Game.Rulesets.Catch.Skinning.Legacy
 
                     case CatchSkinComponents.CatchComboCounter:
                         if (providesComboCounter)
-                            return new LegacyCatchComboCounter(Skin);
+                            return new LegacyCatchComboCounter();
 
                         return null;
 

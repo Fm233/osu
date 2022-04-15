@@ -1,8 +1,9 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Linq;
+using System.Threading.Tasks;
 using osu.Framework.Allocation;
-using osu.Framework.Logging;
 using osu.Framework.Screens;
 using osu.Game.Beatmaps;
 using osu.Game.Graphics.UserInterface;
@@ -19,17 +20,22 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
         [Resolved]
         private MultiplayerClient client { get; set; }
 
+        private readonly long? itemToEdit;
+
         private LoadingLayer loadingLayer;
 
         /// <summary>
         /// Construct a new instance of multiplayer song select.
         /// </summary>
         /// <param name="room">The room.</param>
+        /// <param name="itemToEdit">The item to be edited. May be null, in which case a new item will be added to the playlist.</param>
         /// <param name="beatmap">An optional initial beatmap selection to perform.</param>
         /// <param name="ruleset">An optional initial ruleset selection to perform.</param>
-        public MultiplayerMatchSongSelect(Room room, WorkingBeatmap beatmap = null, RulesetInfo ruleset = null)
+        public MultiplayerMatchSongSelect(Room room, long? itemToEdit = null, WorkingBeatmap beatmap = null, RulesetInfo ruleset = null)
             : base(room)
         {
+            this.itemToEdit = itemToEdit;
+
             if (beatmap != null || ruleset != null)
             {
                 Schedule(() =>
@@ -54,21 +60,30 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
             {
                 loadingLayer.Show();
 
-                client.ChangeSettings(item: item).ContinueWith(t =>
+                var multiplayerItem = new MultiplayerPlaylistItem
                 {
-                    Schedule(() =>
-                    {
-                        loadingLayer.Hide();
+                    ID = itemToEdit ?? 0,
+                    BeatmapID = item.Beatmap.OnlineID,
+                    BeatmapChecksum = item.Beatmap.MD5Hash,
+                    RulesetID = item.RulesetID,
+                    RequiredMods = item.RequiredMods.ToArray(),
+                    AllowedMods = item.AllowedMods.ToArray()
+                };
 
-                        if (t.IsCompletedSuccessfully)
-                            this.Exit();
-                        else
-                        {
-                            Logger.Log($"Could not use current beatmap ({t.Exception?.Message})", level: LogLevel.Important);
-                            Carousel.AllowSelection = true;
-                        }
-                    });
-                });
+                Task task = itemToEdit != null ? client.EditPlaylistItem(multiplayerItem) : client.AddPlaylistItem(multiplayerItem);
+
+                task.FireAndForget(onSuccess: () => Schedule(() =>
+                {
+                    loadingLayer.Hide();
+
+                    // If an error or server side trigger occurred this screen may have already exited by external means.
+                    if (this.IsCurrentScreen())
+                        this.Exit();
+                }), onError: _ => Schedule(() =>
+                {
+                    loadingLayer.Hide();
+                    Carousel.AllowSelection = true;
+                }));
             }
             else
             {

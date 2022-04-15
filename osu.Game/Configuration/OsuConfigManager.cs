@@ -3,17 +3,23 @@
 
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using osu.Framework.Configuration;
 using osu.Framework.Configuration.Tracking;
 using osu.Framework.Extensions;
+using osu.Framework.Extensions.LocalisationExtensions;
+using osu.Framework.Localisation;
 using osu.Framework.Platform;
 using osu.Framework.Testing;
+using osu.Game.Beatmaps.Drawables.Cards;
 using osu.Game.Input;
 using osu.Game.Input.Bindings;
+using osu.Game.Localisation;
 using osu.Game.Overlays;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Screens.Select;
 using osu.Game.Screens.Select.Filter;
+using osu.Game.Skinning;
 
 namespace osu.Game.Configuration
 {
@@ -23,8 +29,8 @@ namespace osu.Game.Configuration
         protected override void InitialiseDefaults()
         {
             // UI/selection defaults
-            SetDefault(OsuSetting.Ruleset, 0, 0, int.MaxValue);
-            SetDefault(OsuSetting.Skin, 0, -1, int.MaxValue);
+            SetDefault(OsuSetting.Ruleset, string.Empty);
+            SetDefault(OsuSetting.Skin, SkinInfo.DEFAULT_SKIN.ToString());
 
             SetDefault(OsuSetting.BeatmapDetailTab, PlayBeatmapDetailArea.TabType.Details);
             SetDefault(OsuSetting.BeatmapDetailModsFilter, false);
@@ -39,6 +45,10 @@ namespace osu.Game.Configuration
             SetDefault(OsuSetting.RandomSelectAlgorithm, RandomSelectAlgorithm.RandomPermutation);
 
             SetDefault(OsuSetting.ChatDisplayHeight, ChatOverlay.DEFAULT_HEIGHT, 0.2f, 1f);
+
+            SetDefault(OsuSetting.BeatmapListingCardSize, BeatmapCardSize.Normal);
+
+            SetDefault(OsuSetting.ToolbarClockDisplayMode, ToolbarClockDisplayMode.Full);
 
             // Online settings
             SetDefault(OsuSetting.Username, string.Empty);
@@ -93,7 +103,12 @@ namespace osu.Game.Configuration
 
             SetDefault(OsuSetting.MenuParallax, true);
 
+            // See https://stackoverflow.com/a/63307411 for default sourcing.
+            SetDefault(OsuSetting.Prefer24HourTime, CultureInfo.CurrentCulture.DateTimeFormat.ShortTimePattern.Contains(@"tt"));
+
             // Gameplay
+            SetDefault(OsuSetting.PositionalHitsounds, true); // replaced by level setting below, can be removed 20220703.
+            SetDefault(OsuSetting.PositionalHitsoundsLevel, 0.2f, 0, 1);
             SetDefault(OsuSetting.DimLevel, 0.8, 0, 1, 0.01);
             SetDefault(OsuSetting.BlurLevel, 0, 0, 1, 0.01);
             SetDefault(OsuSetting.LightenDuringBreaks, true);
@@ -105,7 +120,6 @@ namespace osu.Game.Configuration
             SetDefault(OsuSetting.ShowHealthDisplayWhenCantFail, true);
             SetDefault(OsuSetting.FadePlayfieldWhenHealthLow, true);
             SetDefault(OsuSetting.KeyOverlay, false);
-            SetDefault(OsuSetting.PositionalHitSounds, true);
             SetDefault(OsuSetting.AlwaysPlayFirstComboBreak, true);
 
             SetDefault(OsuSetting.FloatingComments, false);
@@ -135,7 +149,7 @@ namespace osu.Game.Configuration
 
             SetDefault(OsuSetting.UIScale, 1f, 0.8f, 1.6f, 0.01f);
 
-            SetDefault(OsuSetting.UIHoldActivationDelay, 200f, 0f, 500f, 50f);
+            SetDefault(OsuSetting.UIHoldActivationDelay, 200.0, 0.0, 500.0, 50.0);
 
             SetDefault(OsuSetting.IntroSequence, IntroSequence.Triangles);
 
@@ -157,12 +171,12 @@ namespace osu.Game.Configuration
         public void Migrate()
         {
             // arrives as 2020.123.0
-            var rawVersion = Get<string>(OsuSetting.Version);
+            string rawVersion = Get<string>(OsuSetting.Version);
 
             if (rawVersion.Length < 6)
                 return;
 
-            var pieces = rawVersion.Split('.');
+            string[] pieces = rawVersion.Split('.');
 
             // on a fresh install or when coming from a non-release build, execution will end here.
             // we don't want to run migrations in such cases.
@@ -171,9 +185,11 @@ namespace osu.Game.Configuration
 
             int combined = (year * 10000) + monthDay;
 
-            if (combined < 20210413)
+            if (combined < 20220103)
             {
-                SetValue(OsuSetting.EditorWaveformOpacity, 0.25f);
+                var positionalHitsoundsEnabled = GetBindable<bool>(OsuSetting.PositionalHitsounds);
+                if (!positionalHitsoundsEnabled.Value)
+                    SetValue(OsuSetting.PositionalHitsoundsLevel, 0);
             }
         }
 
@@ -185,20 +201,57 @@ namespace osu.Game.Configuration
 
             return new TrackedSettings
             {
-                new TrackedSetting<bool>(OsuSetting.MouseDisableButtons, v => new SettingDescription(!v, "gameplay mouse buttons", v ? "disabled" : "enabled", LookupKeyBindings(GlobalAction.ToggleGameplayMouseButtons))),
-                new TrackedSetting<HUDVisibilityMode>(OsuSetting.HUDVisibilityMode, m => new SettingDescription(m, "HUD Visibility", m.GetDescription(), $"cycle: {LookupKeyBindings(GlobalAction.ToggleInGameInterface)} quick view: {LookupKeyBindings(GlobalAction.HoldForHUD)}")),
-                new TrackedSetting<ScalingMode>(OsuSetting.Scaling, m => new SettingDescription(m, "scaling", m.GetDescription())),
-                new TrackedSetting<int>(OsuSetting.Skin, m =>
+                new TrackedSetting<bool>(OsuSetting.MouseDisableButtons, disabledState => new SettingDescription(
+                    rawValue: !disabledState,
+                    name: GlobalActionKeyBindingStrings.ToggleGameplayMouseButtons,
+                    value: disabledState ? CommonStrings.Disabled.ToLower() : CommonStrings.Enabled.ToLower(),
+                    shortcut: LookupKeyBindings(GlobalAction.ToggleGameplayMouseButtons))
+                ),
+                new TrackedSetting<HUDVisibilityMode>(OsuSetting.HUDVisibilityMode, visibilityMode => new SettingDescription(
+                    rawValue: visibilityMode,
+                    name: GameplaySettingsStrings.HUDVisibilityMode,
+                    value: visibilityMode.GetLocalisableDescription(),
+                    shortcut: new TranslatableString(@"_", @"{0}: {1} {2}: {3}",
+                        GlobalActionKeyBindingStrings.ToggleInGameInterface,
+                        LookupKeyBindings(GlobalAction.ToggleInGameInterface),
+                        GlobalActionKeyBindingStrings.HoldForHUD,
+                        LookupKeyBindings(GlobalAction.HoldForHUD)))
+                ),
+                new TrackedSetting<ScalingMode>(OsuSetting.Scaling, scalingMode => new SettingDescription(
+                        rawValue: scalingMode,
+                        name: GraphicsSettingsStrings.ScreenScaling,
+                        value: scalingMode.GetLocalisableDescription()
+                    )
+                ),
+                new TrackedSetting<string>(OsuSetting.Skin, skin =>
                 {
-                    string skinName = LookupSkinName(m) ?? string.Empty;
-                    return new SettingDescription(skinName, "skin", skinName, $"random: {LookupKeyBindings(GlobalAction.RandomSkin)}");
-                })
+                    string skinName = string.Empty;
+
+                    if (Guid.TryParse(skin, out var id))
+                        skinName = LookupSkinName(id) ?? string.Empty;
+
+                    return new SettingDescription(
+                        rawValue: skinName,
+                        name: SkinSettingsStrings.SkinSectionHeader,
+                        value: skinName,
+                        shortcut: new TranslatableString(@"_", @"{0}: {1}",
+                            GlobalActionKeyBindingStrings.RandomSkin,
+                            LookupKeyBindings(GlobalAction.RandomSkin))
+                    );
+                }),
+                new TrackedSetting<float>(OsuSetting.UIScale, scale => new SettingDescription(
+                        rawValue: scale,
+                        name: GraphicsSettingsStrings.UIScaling,
+                        value: $"{scale:N2}x"
+                        // TODO: implement lookup for framework platform key bindings
+                    )
+                ),
             };
         }
 
-        public Func<int, string> LookupSkinName { private get; set; }
+        public Func<Guid, string> LookupSkinName { private get; set; } = _ => @"unknown";
 
-        public Func<GlobalAction, string> LookupKeyBindings { get; set; }
+        public Func<GlobalAction, LocalisableString> LookupKeyBindings { get; set; } = _ => @"unknown";
     }
 
     // IMPORTANT: These are used in user configuration files.
@@ -215,7 +268,8 @@ namespace osu.Game.Configuration
         LightenDuringBreaks,
         ShowStoryboard,
         KeyOverlay,
-        PositionalHitSounds,
+        PositionalHitsounds,
+        PositionalHitsoundsLevel,
         AlwaysPlayFirstComboBreak,
         FloatingComments,
         HUDVisibilityMode,
@@ -225,12 +279,19 @@ namespace osu.Game.Configuration
         MouseDisableButtons,
         MouseDisableWheel,
         ConfineMouseMode,
+
+        /// <summary>
+        /// Globally applied audio offset.
+        /// This is added to the audio track's current time. Higher values will cause gameplay to occur earlier, relative to the audio track.
+        /// </summary>
         AudioOffset,
+
         VolumeInactive,
         MenuMusic,
         MenuVoice,
         CursorRotation,
         MenuParallax,
+        Prefer24HourTime,
         BeatmapDetailTab,
         BeatmapDetailModsFilter,
         Username,
@@ -244,6 +305,8 @@ namespace osu.Game.Configuration
         RandomSelectAlgorithm,
         ShowFpsDisplay,
         ChatDisplayHeight,
+        BeatmapListingCardSize,
+        ToolbarClockDisplayMode,
         Version,
         ShowConvertedBeatmaps,
         Skin,

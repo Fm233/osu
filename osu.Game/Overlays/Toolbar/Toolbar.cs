@@ -58,8 +58,11 @@ namespace osu.Game.Overlays.Toolbar
             AlwaysPresent = false;
         }
 
+        [Resolved]
+        private Bindable<RulesetInfo> ruleset { get; set; }
+
         [BackgroundDependencyLoader(true)]
-        private void load(OsuGame osuGame, Bindable<RulesetInfo> parentRuleset)
+        private void load(OsuGame osuGame)
         {
             Children = new Drawable[]
             {
@@ -101,16 +104,21 @@ namespace osu.Game.Overlays.Toolbar
                         //    Icon = FontAwesome.Solid.search
                         //},
                         userButton = new ToolbarUserButton(),
+                        new ToolbarClock(),
                         new ToolbarNotificationButton(),
                     }
                 }
             };
 
-            // Bound after the selector is added to the hierarchy to give it a chance to load the available rulesets
-            rulesetSelector.Current.BindTo(parentRuleset);
-
             if (osuGame != null)
                 OverlayActivationMode.BindTo(osuGame.OverlayActivationMode);
+        }
+
+        protected override void LoadComplete()
+        {
+            base.LoadComplete();
+
+            rulesetSelector.Current.BindTo(ruleset);
         }
 
         public class ToolbarBackground : Container
@@ -178,12 +186,12 @@ namespace osu.Game.Overlays.Toolbar
             this.FadeOut(transition_time, Easing.InQuint);
         }
 
-        public bool OnPressed(GlobalAction action)
+        public bool OnPressed(KeyBindingPressEvent<GlobalAction> e)
         {
             if (OverlayActivationMode.Value == OverlayActivation.Disabled)
                 return false;
 
-            switch (action)
+            switch (e.Action)
             {
                 case GlobalAction.ToggleToolbar:
                     hiddenByUser = State.Value == Visibility.Visible; // set before toggling to allow the operation to always succeed.
@@ -194,7 +202,7 @@ namespace osu.Game.Overlays.Toolbar
             return false;
         }
 
-        public void OnReleased(GlobalAction action)
+        public void OnReleased(KeyBindingReleaseEvent<GlobalAction> e)
         {
         }
     }

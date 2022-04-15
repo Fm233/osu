@@ -4,6 +4,7 @@
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Screens;
+using osu.Game.Beatmaps;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Online.Spectator;
@@ -53,7 +54,7 @@ namespace osu.Game.Screens.Play
 
         private void userSentFrames(int userId, FrameDataBundle bundle)
         {
-            if (userId != score.ScoreInfo.User.Id)
+            if (userId != score.ScoreInfo.User.OnlineID)
                 return;
 
             if (!LoadedBeatmapSuccessfully)
@@ -66,20 +67,21 @@ namespace osu.Game.Screens.Play
 
             foreach (var frame in bundle.Frames)
             {
-                IConvertibleReplayFrame convertibleFrame = GameplayRuleset.CreateConvertibleReplayFrame();
-                convertibleFrame.FromLegacy(frame, GameplayBeatmap.PlayableBeatmap);
+                IConvertibleReplayFrame convertibleFrame = GameplayState.Ruleset.CreateConvertibleReplayFrame();
+                convertibleFrame.FromLegacy(frame, GameplayState.Beatmap);
 
                 var convertedFrame = (ReplayFrame)convertibleFrame;
                 convertedFrame.Time = frame.Time;
+                convertedFrame.Header = frame.Header;
 
                 score.Replay.Frames.Add(convertedFrame);
             }
 
             if (isFirstBundle && score.Replay.Frames.Count > 0)
-                NonFrameStableSeek(score.Replay.Frames[0].Time);
+                SetGameplayStartTime(score.Replay.Frames[0].Time);
         }
 
-        protected override Score CreateScore() => score;
+        protected override Score CreateScore(IBeatmap beatmap) => score;
 
         protected override ResultsScreen CreateResults(ScoreInfo score)
             => new SpectatorResultsScreen(score);

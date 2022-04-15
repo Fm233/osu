@@ -10,7 +10,7 @@ using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.Textures;
 using osu.Game.Audio;
 using osu.Game.Rulesets.Objects.Legacy;
-using static osu.Game.Skinning.LegacySkinConfiguration;
+using static osu.Game.Skinning.SkinConfiguration;
 
 namespace osu.Game.Skinning
 {
@@ -23,7 +23,7 @@ namespace osu.Game.Skinning
         /// The <see cref="ISkin"/> which is being transformed.
         /// </summary>
         [NotNull]
-        protected ISkin Skin { get; }
+        protected internal ISkin Skin { get; }
 
         protected LegacySkinTransformer([NotNull] ISkin skin)
         {

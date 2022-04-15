@@ -1,14 +1,19 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using JetBrains.Annotations;
 using osu.Framework.Allocation;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Logging;
 using osu.Framework.Screens;
 using osu.Framework.Threading;
 using osu.Game.Beatmaps;
 using osu.Game.Graphics.UserInterface;
+using osu.Game.Rulesets;
+using osu.Game.Rulesets.Mods;
 using osu.Game.Screens.Menu;
 using osu.Game.Screens.Play;
 
@@ -20,6 +25,13 @@ namespace osu.Game.Screens.Edit
     /// </summary>
     public class EditorLoader : ScreenWithBeatmapBackground
     {
+        /// <summary>
+        /// The stored state from the last editor opened.
+        /// This will be read by the next editor instance to be opened to restore any relevant previous state.
+        /// </summary>
+        [CanBeNull]
+        private EditorState state;
+
         public override float BackgroundParallaxAmount => 0.1f;
 
         public override bool AllowBackButton => false;
@@ -34,6 +46,28 @@ namespace osu.Game.Screens.Edit
         [CanBeNull]
         private ScheduledDelegate scheduledDifficultySwitch;
 
+        [BackgroundDependencyLoader]
+        private void load()
+        {
+            AddRangeInternal(new Drawable[]
+            {
+                new LoadingSpinner(true)
+                {
+                    State = { Value = Visibility.Visible },
+                }
+            });
+        }
+
+        protected override void LoadComplete()
+        {
+            base.LoadComplete();
+
+            // will be restored via lease, see `DisallowExternalBeatmapRulesetChanges`.
+            Mods.Value = Array.Empty<Mod>();
+        }
+
+        protected virtual Editor CreateEditor() => new Editor(this);
+
         protected override void LogoArriving(OsuLogo logo, bool resuming)
         {
             base.LogoArriving(logo, resuming);
@@ -47,19 +81,32 @@ namespace osu.Game.Screens.Edit
             }
         }
 
-        [BackgroundDependencyLoader]
-        private void load()
-        {
-            AddRangeInternal(new Drawable[]
+        public void ScheduleSwitchToNewDifficulty(BeatmapInfo referenceBeatmapInfo, RulesetInfo rulesetInfo, bool createCopy, EditorState editorState)
+            => scheduleDifficultySwitch(() =>
             {
-                new LoadingSpinner(true)
+                try
                 {
-                    State = { Value = Visibility.Visible },
-                }
-            });
-        }
+                    // fetch a fresh detached reference from database to avoid polluting model instances attached to cached working beatmaps.
+                    var targetBeatmapSet = beatmapManager.QueryBeatmap(b => b.ID == referenceBeatmapInfo.ID).AsNonNull().BeatmapSet.AsNonNull();
+                    var referenceWorkingBeatmap = beatmapManager.GetWorkingBeatmap(referenceBeatmapInfo);
 
-        public void ScheduleDifficultySwitch(BeatmapInfo beatmapInfo)
+                    return createCopy
+                        ? beatmapManager.CopyExistingDifficulty(targetBeatmapSet, referenceWorkingBeatmap)
+                        : beatmapManager.CreateNewDifficulty(targetBeatmapSet, referenceWorkingBeatmap, rulesetInfo);
+                }
+                catch (Exception ex)
+                {
+                    // if the beatmap creation fails (e.g. due to duplicated difficulty names),
+                    // bring the user back to the previous beatmap as a best-effort.
+                    Logger.Error(ex, ex.Message);
+                    return Beatmap.Value;
+                }
+            }, editorState);
+
+        public void ScheduleSwitchToExistingDifficulty(BeatmapInfo beatmapInfo, EditorState editorState)
+            => scheduleDifficultySwitch(() => beatmapManager.GetWorkingBeatmap(beatmapInfo), editorState);
+
+        private void scheduleDifficultySwitch(Func<WorkingBeatmap> nextBeatmap, EditorState editorState)
         {
             scheduledDifficultySwitch?.Cancel();
             ValidForResume = true;
@@ -68,7 +115,8 @@ namespace osu.Game.Screens.Edit
 
             scheduledDifficultySwitch = Schedule(() =>
             {
-                Beatmap.Value = beatmapManager.GetWorkingBeatmap(beatmapInfo);
+                Beatmap.Value = nextBeatmap.Invoke();
+                state = editorState;
 
                 // This screen is a weird exception to the rule that nothing after song select changes the global beatmap.
                 // Because of this, we need to update the background stack's beatmap to match.
@@ -81,7 +129,13 @@ namespace osu.Game.Screens.Edit
 
         private void pushEditor()
         {
-            this.Push(new Editor(this));
+            var editor = CreateEditor();
+
+            this.Push(editor);
+
+            if (state != null)
+                editor.RestoreState(state);
+
             ValidForResume = false;
         }
 

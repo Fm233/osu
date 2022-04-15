@@ -60,10 +60,11 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.AreEqual(0, beatmapInfo.AudioLeadIn);
                 Assert.AreEqual(164471, metadata.PreviewTime);
                 Assert.AreEqual(0.7f, beatmapInfo.StackLeniency);
-                Assert.IsTrue(beatmapInfo.RulesetID == 0);
+                Assert.IsTrue(beatmapInfo.Ruleset.OnlineID == 0);
                 Assert.IsFalse(beatmapInfo.LetterboxInBreaks);
                 Assert.IsFalse(beatmapInfo.SpecialStyle);
                 Assert.IsFalse(beatmapInfo.WidescreenStoryboard);
+                Assert.IsFalse(beatmapInfo.SamplesMatchPlaybackRate);
                 Assert.AreEqual(CountdownType.None, beatmapInfo.Countdown);
                 Assert.AreEqual(0, beatmapInfo.CountdownOffset);
             }
@@ -111,12 +112,12 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.AreEqual("Renatus", metadata.TitleUnicode);
                 Assert.AreEqual("Soleily", metadata.Artist);
                 Assert.AreEqual("Soleily", metadata.ArtistUnicode);
-                Assert.AreEqual("Gamu", metadata.AuthorString);
-                Assert.AreEqual("Insane", beatmapInfo.Version);
+                Assert.AreEqual("Gamu", metadata.Author.Username);
+                Assert.AreEqual("Insane", beatmapInfo.DifficultyName);
                 Assert.AreEqual(string.Empty, metadata.Source);
                 Assert.AreEqual("MBC7 Unisphere 地球ヤバイEP Chikyu Yabai", metadata.Tags);
-                Assert.AreEqual(557821, beatmapInfo.OnlineBeatmapID);
-                Assert.AreEqual(241526, beatmapInfo.BeatmapSet.OnlineBeatmapSetID);
+                Assert.AreEqual(557821, beatmapInfo.OnlineID);
+                Assert.AreEqual(241526, beatmapInfo.BeatmapSet?.OnlineID);
             }
         }
 
@@ -128,7 +129,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
             using (var resStream = TestResources.OpenResource("Soleily - Renatus (Gamu) [Insane].osu"))
             using (var stream = new LineBufferedReader(resStream))
             {
-                var difficulty = decoder.Decode(stream).BeatmapInfo.BaseDifficulty;
+                var difficulty = decoder.Decode(stream).Difficulty;
 
                 Assert.AreEqual(6.5f, difficulty.DrainRate);
                 Assert.AreEqual(4, difficulty.CircleSize);
@@ -177,29 +178,29 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 var timingPoint = controlPoints.TimingPointAt(0);
                 Assert.AreEqual(956, timingPoint.Time);
                 Assert.AreEqual(329.67032967033, timingPoint.BeatLength);
-                Assert.AreEqual(TimeSignatures.SimpleQuadruple, timingPoint.TimeSignature);
+                Assert.AreEqual(TimeSignature.SimpleQuadruple, timingPoint.TimeSignature);
 
                 timingPoint = controlPoints.TimingPointAt(48428);
                 Assert.AreEqual(956, timingPoint.Time);
                 Assert.AreEqual(329.67032967033d, timingPoint.BeatLength);
-                Assert.AreEqual(TimeSignatures.SimpleQuadruple, timingPoint.TimeSignature);
+                Assert.AreEqual(TimeSignature.SimpleQuadruple, timingPoint.TimeSignature);
 
                 timingPoint = controlPoints.TimingPointAt(119637);
                 Assert.AreEqual(119637, timingPoint.Time);
                 Assert.AreEqual(659.340659340659, timingPoint.BeatLength);
-                Assert.AreEqual(TimeSignatures.SimpleQuadruple, timingPoint.TimeSignature);
+                Assert.AreEqual(TimeSignature.SimpleQuadruple, timingPoint.TimeSignature);
 
                 var difficultyPoint = controlPoints.DifficultyPointAt(0);
                 Assert.AreEqual(0, difficultyPoint.Time);
-                Assert.AreEqual(1.0, difficultyPoint.SpeedMultiplier);
+                Assert.AreEqual(1.0, difficultyPoint.SliderVelocity);
 
                 difficultyPoint = controlPoints.DifficultyPointAt(48428);
                 Assert.AreEqual(0, difficultyPoint.Time);
-                Assert.AreEqual(1.0, difficultyPoint.SpeedMultiplier);
+                Assert.AreEqual(1.0, difficultyPoint.SliderVelocity);
 
                 difficultyPoint = controlPoints.DifficultyPointAt(116999);
                 Assert.AreEqual(116999, difficultyPoint.Time);
-                Assert.AreEqual(0.75, difficultyPoint.SpeedMultiplier, 0.1);
+                Assert.AreEqual(0.75, difficultyPoint.SliderVelocity, 0.1);
 
                 var soundPoint = controlPoints.SamplePointAt(0);
                 Assert.AreEqual(956, soundPoint.Time);
@@ -226,7 +227,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.IsTrue(effectPoint.KiaiMode);
                 Assert.IsFalse(effectPoint.OmitFirstBarLine);
 
-                effectPoint = controlPoints.EffectPointAt(119637);
+                effectPoint = controlPoints.EffectPointAt(116637);
                 Assert.AreEqual(95901, effectPoint.Time);
                 Assert.IsFalse(effectPoint.KiaiMode);
                 Assert.IsFalse(effectPoint.OmitFirstBarLine);
@@ -248,10 +249,10 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.That(controlPoints.EffectPoints.Count, Is.EqualTo(3));
                 Assert.That(controlPoints.SamplePoints.Count, Is.EqualTo(3));
 
-                Assert.That(controlPoints.DifficultyPointAt(500).SpeedMultiplier, Is.EqualTo(1.5).Within(0.1));
-                Assert.That(controlPoints.DifficultyPointAt(1500).SpeedMultiplier, Is.EqualTo(1.5).Within(0.1));
-                Assert.That(controlPoints.DifficultyPointAt(2500).SpeedMultiplier, Is.EqualTo(0.75).Within(0.1));
-                Assert.That(controlPoints.DifficultyPointAt(3500).SpeedMultiplier, Is.EqualTo(1.5).Within(0.1));
+                Assert.That(controlPoints.DifficultyPointAt(500).SliderVelocity, Is.EqualTo(1.5).Within(0.1));
+                Assert.That(controlPoints.DifficultyPointAt(1500).SliderVelocity, Is.EqualTo(1.5).Within(0.1));
+                Assert.That(controlPoints.DifficultyPointAt(2500).SliderVelocity, Is.EqualTo(0.75).Within(0.1));
+                Assert.That(controlPoints.DifficultyPointAt(3500).SliderVelocity, Is.EqualTo(1.5).Within(0.1));
 
                 Assert.That(controlPoints.EffectPointAt(500).KiaiMode, Is.True);
                 Assert.That(controlPoints.EffectPointAt(1500).KiaiMode, Is.True);
@@ -278,10 +279,10 @@ namespace osu.Game.Tests.Beatmaps.Formats
             using (var resStream = TestResources.OpenResource("timingpoint-speedmultiplier-reset.osu"))
             using (var stream = new LineBufferedReader(resStream))
             {
-                var controlPoints = decoder.Decode(stream).ControlPointInfo;
+                var controlPoints = (LegacyControlPointInfo)decoder.Decode(stream).ControlPointInfo;
 
-                Assert.That(controlPoints.DifficultyPointAt(0).SpeedMultiplier, Is.EqualTo(0.5).Within(0.1));
-                Assert.That(controlPoints.DifficultyPointAt(2000).SpeedMultiplier, Is.EqualTo(1).Within(0.1));
+                Assert.That(controlPoints.DifficultyPointAt(0).SliderVelocity, Is.EqualTo(0.5).Within(0.1));
+                Assert.That(controlPoints.DifficultyPointAt(2000).SliderVelocity, Is.EqualTo(1).Within(0.1));
             }
         }
 
@@ -393,12 +394,12 @@ namespace osu.Game.Tests.Beatmaps.Formats
             using (var resStream = TestResources.OpenResource("controlpoint-difficulty-multiplier.osu"))
             using (var stream = new LineBufferedReader(resStream))
             {
-                var controlPointInfo = decoder.Decode(stream).ControlPointInfo;
+                var controlPointInfo = (LegacyControlPointInfo)decoder.Decode(stream).ControlPointInfo;
 
-                Assert.That(controlPointInfo.DifficultyPointAt(5).SpeedMultiplier, Is.EqualTo(1));
-                Assert.That(controlPointInfo.DifficultyPointAt(1000).SpeedMultiplier, Is.EqualTo(10));
-                Assert.That(controlPointInfo.DifficultyPointAt(2000).SpeedMultiplier, Is.EqualTo(1.8518518518518519d));
-                Assert.That(controlPointInfo.DifficultyPointAt(3000).SpeedMultiplier, Is.EqualTo(0.5));
+                Assert.That(controlPointInfo.DifficultyPointAt(5).SliderVelocity, Is.EqualTo(1));
+                Assert.That(controlPointInfo.DifficultyPointAt(1000).SliderVelocity, Is.EqualTo(10));
+                Assert.That(controlPointInfo.DifficultyPointAt(2000).SliderVelocity, Is.EqualTo(1.8518518518518519d));
+                Assert.That(controlPointInfo.DifficultyPointAt(3000).SliderVelocity, Is.EqualTo(0.5));
             }
         }
 
@@ -546,7 +547,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.DoesNotThrow(() => beatmap = decoder.Decode(stream));
                 Assert.IsNotNull(beatmap);
                 Assert.AreEqual("Beatmap with corrupted header", beatmap.Metadata.Title);
-                Assert.AreEqual("Evil Hacker", beatmap.Metadata.AuthorString);
+                Assert.AreEqual("Evil Hacker", beatmap.Metadata.Author.Username);
             }
         }
 
@@ -564,7 +565,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.DoesNotThrow(() => beatmap = decoder.Decode(stream));
                 Assert.IsNotNull(beatmap);
                 Assert.AreEqual("Beatmap with no header", beatmap.Metadata.Title);
-                Assert.AreEqual("Incredibly Evil Hacker", beatmap.Metadata.AuthorString);
+                Assert.AreEqual("Incredibly Evil Hacker", beatmap.Metadata.Author.Username);
             }
         }
 
@@ -582,7 +583,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.DoesNotThrow(() => beatmap = decoder.Decode(stream));
                 Assert.IsNotNull(beatmap);
                 Assert.AreEqual("Empty lines at start", beatmap.Metadata.Title);
-                Assert.AreEqual("Edge Case Hunter", beatmap.Metadata.AuthorString);
+                Assert.AreEqual("Edge Case Hunter", beatmap.Metadata.Author.Username);
             }
         }
 
@@ -600,7 +601,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.DoesNotThrow(() => beatmap = decoder.Decode(stream));
                 Assert.IsNotNull(beatmap);
                 Assert.AreEqual("The dog ate the file header", beatmap.Metadata.Title);
-                Assert.AreEqual("Why does this keep happening", beatmap.Metadata.AuthorString);
+                Assert.AreEqual("Why does this keep happening", beatmap.Metadata.Author.Username);
             }
         }
 
@@ -618,7 +619,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.DoesNotThrow(() => beatmap = decoder.Decode(stream));
                 Assert.IsNotNull(beatmap);
                 Assert.AreEqual("No empty line delimiting header from contents", beatmap.Metadata.Title);
-                Assert.AreEqual("Edge Case Hunter", beatmap.Metadata.AuthorString);
+                Assert.AreEqual("Edge Case Hunter", beatmap.Metadata.Author.Username);
             }
         }
 
@@ -672,6 +673,8 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.That(first.ControlPoints[1].Position, Is.EqualTo(new Vector2(161, -244)));
                 Assert.That(first.ControlPoints[1].Type, Is.EqualTo(null));
 
+                // ReSharper disable once HeuristicUnreachableCode
+                // weird one, see https://youtrack.jetbrains.com/issue/RIDER-70159.
                 Assert.That(first.ControlPoints[2].Position, Is.EqualTo(new Vector2(376, -3)));
                 Assert.That(first.ControlPoints[2].Type, Is.EqualTo(PathType.Bezier));
                 Assert.That(first.ControlPoints[3].Position, Is.EqualTo(new Vector2(68, 15)));
@@ -772,6 +775,92 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.That(seventh.ControlPoints[3].Type == null);
                 Assert.That(seventh.ControlPoints[4].Position, Is.EqualTo(new Vector2(410, 20)));
                 Assert.That(seventh.ControlPoints[4].Type == null);
+            }
+        }
+
+        [Test]
+        public void TestSliderLengthExtensionEdgeCase()
+        {
+            var decoder = new LegacyBeatmapDecoder { ApplyOffsets = false };
+
+            using (var resStream = TestResources.OpenResource("duplicate-last-position-slider.osu"))
+            using (var stream = new LineBufferedReader(resStream))
+            {
+                var decoded = decoder.Decode(stream);
+
+                var path = ((IHasPath)decoded.HitObjects[0]).Path;
+
+                Assert.That(path.ExpectedDistance.Value, Is.EqualTo(2));
+                Assert.That(path.Distance, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void TestLegacyDefaultsPreserved()
+        {
+            var decoder = new LegacyBeatmapDecoder { ApplyOffsets = false };
+
+            using (var memoryStream = new MemoryStream())
+            using (var stream = new LineBufferedReader(memoryStream))
+            {
+                var decoded = decoder.Decode(stream);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(decoded.BeatmapInfo.AudioLeadIn, Is.EqualTo(0));
+                    Assert.That(decoded.BeatmapInfo.StackLeniency, Is.EqualTo(0.7f));
+                    Assert.That(decoded.BeatmapInfo.SpecialStyle, Is.False);
+                    Assert.That(decoded.BeatmapInfo.LetterboxInBreaks, Is.False);
+                    Assert.That(decoded.BeatmapInfo.WidescreenStoryboard, Is.False);
+                    Assert.That(decoded.BeatmapInfo.EpilepsyWarning, Is.False);
+                    Assert.That(decoded.BeatmapInfo.SamplesMatchPlaybackRate, Is.False);
+                    Assert.That(decoded.BeatmapInfo.Countdown, Is.EqualTo(CountdownType.Normal));
+                    Assert.That(decoded.BeatmapInfo.CountdownOffset, Is.EqualTo(0));
+                    Assert.That(decoded.BeatmapInfo.Metadata.PreviewTime, Is.EqualTo(-1));
+                    Assert.That(decoded.BeatmapInfo.Ruleset.OnlineID, Is.EqualTo(0));
+                });
+            }
+        }
+
+        [Test]
+        public void TestUndefinedApproachRateInheritsOverallDifficulty()
+        {
+            var decoder = new LegacyBeatmapDecoder { ApplyOffsets = false };
+
+            using (var resStream = TestResources.OpenResource("undefined-approach-rate.osu"))
+            using (var stream = new LineBufferedReader(resStream))
+            {
+                var decoded = decoder.Decode(stream);
+                Assert.That(decoded.Difficulty.ApproachRate, Is.EqualTo(1));
+                Assert.That(decoded.Difficulty.OverallDifficulty, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void TestApproachRateDefinedBeforeOverallDifficulty()
+        {
+            var decoder = new LegacyBeatmapDecoder { ApplyOffsets = false };
+
+            using (var resStream = TestResources.OpenResource("approach-rate-before-overall-difficulty.osu"))
+            using (var stream = new LineBufferedReader(resStream))
+            {
+                var decoded = decoder.Decode(stream);
+                Assert.That(decoded.Difficulty.ApproachRate, Is.EqualTo(9));
+                Assert.That(decoded.Difficulty.OverallDifficulty, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void TestApproachRateDefinedAfterOverallDifficulty()
+        {
+            var decoder = new LegacyBeatmapDecoder { ApplyOffsets = false };
+
+            using (var resStream = TestResources.OpenResource("approach-rate-after-overall-difficulty.osu"))
+            using (var stream = new LineBufferedReader(resStream))
+            {
+                var decoded = decoder.Decode(stream);
+                Assert.That(decoded.Difficulty.ApproachRate, Is.EqualTo(9));
+                Assert.That(decoded.Difficulty.OverallDifficulty, Is.EqualTo(1));
             }
         }
     }

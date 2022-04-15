@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using osu.Game.Beatmaps.ControlPoints;
 using osu.Game.Beatmaps.Timing;
 using osu.Game.Rulesets.Objects;
+using osu.Game.Rulesets.Scoring;
 
 namespace osu.Game.Beatmaps
 {
@@ -19,6 +20,11 @@ namespace osu.Game.Beatmaps
         /// This beatmap's metadata.
         /// </summary>
         BeatmapMetadata Metadata { get; }
+
+        /// <summary>
+        /// This beatmap's difficulty settings.
+        /// </summary>
+        public BeatmapDifficulty Difficulty { get; set; }
 
         /// <summary>
         /// The control points in this beatmap.
@@ -64,5 +70,28 @@ namespace osu.Game.Beatmaps
         /// The hitobjects contained by this beatmap.
         /// </summary>
         new IReadOnlyList<T> HitObjects { get; }
+    }
+
+    public static class BeatmapExtensions
+    {
+        /// <summary>
+        /// Finds the maximum achievable combo by hitting all <see cref="HitObject"/>s in a beatmap.
+        /// </summary>
+        public static int GetMaxCombo(this IBeatmap beatmap)
+        {
+            int combo = 0;
+            foreach (var h in beatmap.HitObjects)
+                addCombo(h, ref combo);
+            return combo;
+
+            static void addCombo(HitObject hitObject, ref int combo)
+            {
+                if (hitObject.CreateJudgement().MaxResult.AffectsCombo())
+                    combo++;
+
+                foreach (var nested in hitObject.NestedHitObjects)
+                    addCombo(nested, ref combo);
+            }
+        }
     }
 }

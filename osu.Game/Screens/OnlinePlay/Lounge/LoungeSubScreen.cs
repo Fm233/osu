@@ -17,10 +17,10 @@ using osu.Framework.Input.Events;
 using osu.Framework.Logging;
 using osu.Framework.Screens;
 using osu.Framework.Threading;
-using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.UserInterface;
 using osu.Game.Input;
+using osu.Game.Online.API;
 using osu.Game.Online.Rooms;
 using osu.Game.Overlays;
 using osu.Game.Rulesets;
@@ -63,6 +63,9 @@ namespace osu.Game.Screens.OnlinePlay.Lounge
 
         [Resolved]
         private IBindable<RulesetInfo> ruleset { get; set; }
+
+        [Resolved]
+        private IAPIProvider api { get; set; }
 
         [CanBeNull]
         private IDisposable joiningRoomOperation { get; set; }
@@ -126,7 +129,7 @@ namespace osu.Game.Screens.OnlinePlay.Lounge
                         {
                             RelativeSizeAxes = Axes.X,
                             Height = Header.HEIGHT,
-                            Child = searchTextBox = new LoungeSearchTextBox
+                            Child = searchTextBox = new SearchTextBox
                             {
                                 Anchor = Anchor.CentreRight,
                                 Origin = Anchor.CentreRight,
@@ -290,7 +293,7 @@ namespace osu.Game.Screens.OnlinePlay.Lounge
             popoverContainer.HidePopover();
         }
 
-        public void Join(Room room, string password) => Schedule(() =>
+        public virtual void Join(Room room, string password, Action<Room> onSuccess = null, Action<string> onFailure = null) => Schedule(() =>
         {
             if (joiningRoomOperation != null)
                 return;
@@ -302,12 +305,54 @@ namespace osu.Game.Screens.OnlinePlay.Lounge
                 Open(room);
                 joiningRoomOperation?.Dispose();
                 joiningRoomOperation = null;
-            }, _ =>
+                onSuccess?.Invoke(room);
+            }, error =>
             {
                 joiningRoomOperation?.Dispose();
                 joiningRoomOperation = null;
+                onFailure?.Invoke(error);
             });
         });
+
+        /// <summary>
+        /// Copies a room and opens it as a fresh (not-yet-created) one.
+        /// </summary>
+        /// <param name="room">The room to copy.</param>
+        public void OpenCopy(Room room)
+        {
+            Debug.Assert(room.RoomID.Value != null);
+
+            if (joiningRoomOperation != null)
+                return;
+
+            joiningRoomOperation = ongoingOperationTracker?.BeginOperation();
+
+            var req = new GetRoomRequest(room.RoomID.Value.Value);
+
+            req.Success += r =>
+            {
+                // ID must be unset as we use this as a marker for whether this is a client-side (not-yet-created) room or not.
+                r.RoomID.Value = null;
+
+                // Null out dates because end date is not supported client-side and the settings overlay will populate a duration.
+                r.EndDate.Value = null;
+                r.Duration.Value = null;
+
+                Open(r);
+
+                joiningRoomOperation?.Dispose();
+                joiningRoomOperation = null;
+            };
+
+            req.Failure += exception =>
+            {
+                Logger.Error(exception, "Couldn't create a copy of this room.");
+                joiningRoomOperation?.Dispose();
+                joiningRoomOperation = null;
+            };
+
+            api.Queue(req);
+        }
 
         /// <summary>
         /// Push a room as a new subscreen.
@@ -360,15 +405,5 @@ namespace osu.Game.Screens.OnlinePlay.Lounge
         protected abstract RoomSubScreen CreateRoomSubScreen(Room room);
 
         protected abstract ListingPollingComponent CreatePollingComponent();
-
-        private class LoungeSearchTextBox : SearchTextBox
-        {
-            [BackgroundDependencyLoader]
-            private void load()
-            {
-                BackgroundUnfocused = OsuColour.Gray(0.06f);
-                BackgroundFocused = OsuColour.Gray(0.12f);
-            }
-        }
     }
 }

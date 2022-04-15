@@ -1,15 +1,15 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using osu.Game.Users;
+using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Rulesets;
 
 namespace osu.Game.Online.API.Requests
 {
-    public class GetUserRequest : APIRequest<User>
+    public class GetUserRequest : APIRequest<APIUser>
     {
-        private readonly string lookup;
-        public readonly RulesetInfo Ruleset;
+        public readonly string Lookup;
+        public readonly IRulesetInfo Ruleset;
         private readonly LookupType lookupType;
 
         /// <summary>
@@ -24,9 +24,9 @@ namespace osu.Game.Online.API.Requests
         /// </summary>
         /// <param name="userId">The user to get.</param>
         /// <param name="ruleset">The ruleset to get the user's info for.</param>
-        public GetUserRequest(long? userId = null, RulesetInfo ruleset = null)
+        public GetUserRequest(long? userId = null, IRulesetInfo ruleset = null)
         {
-            lookup = userId.ToString();
+            Lookup = userId.ToString();
             lookupType = LookupType.Id;
             Ruleset = ruleset;
         }
@@ -36,14 +36,14 @@ namespace osu.Game.Online.API.Requests
         /// </summary>
         /// <param name="username">The user to get.</param>
         /// <param name="ruleset">The ruleset to get the user's info for.</param>
-        public GetUserRequest(string username = null, RulesetInfo ruleset = null)
+        public GetUserRequest(string username = null, IRulesetInfo ruleset = null)
         {
-            lookup = username;
+            Lookup = username;
             lookupType = LookupType.Username;
             Ruleset = ruleset;
         }
 
-        protected override string Target => lookup != null ? $@"users/{lookup}/{Ruleset?.ShortName}?k={lookupType.ToString().ToLower()}" : $@"me/{Ruleset?.ShortName}";
+        protected override string Target => Lookup != null ? $@"users/{Lookup}/{Ruleset?.ShortName}?key={lookupType.ToString().ToLower()}" : $@"me/{Ruleset?.ShortName}";
 
         private enum LookupType
         {

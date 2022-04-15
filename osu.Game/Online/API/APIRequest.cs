@@ -2,10 +2,12 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Globalization;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using osu.Framework.IO.Network;
 using osu.Framework.Logging;
-using osu.Game.Users;
+using osu.Game.Online.API.Requests.Responses;
 
 namespace osu.Game.Online.API
 {
@@ -17,7 +19,11 @@ namespace osu.Game.Online.API
     {
         protected override WebRequest CreateWebRequest() => new OsuJsonWebRequest<T>(Uri);
 
-        public T Result { get; private set; }
+        /// <summary>
+        /// The deserialised response object. May be null if the request or deserialisation failed.
+        /// </summary>
+        [CanBeNull]
+        public T Response { get; private set; }
 
         /// <summary>
         /// Invoked on successful completion of an API request.
@@ -27,21 +33,26 @@ namespace osu.Game.Online.API
 
         protected APIRequest()
         {
-            base.Success += () => Success?.Invoke(Result);
+            base.Success += () => Success?.Invoke(Response);
         }
 
         protected override void PostProcess()
         {
             base.PostProcess();
-            Result = ((OsuJsonWebRequest<T>)WebRequest)?.ResponseObject;
+
+            if (WebRequest != null)
+            {
+                Response = ((OsuJsonWebRequest<T>)WebRequest).ResponseObject;
+                Logger.Log($"{GetType()} finished with response size of {WebRequest.ResponseStream.Length:#,0} bytes", LoggingTarget.Network);
+            }
         }
 
         internal void TriggerSuccess(T result)
         {
-            if (Result != null)
+            if (Response != null)
                 throw new InvalidOperationException("Attempted to trigger success more than once");
 
-            Result = result;
+            Response = result;
 
             TriggerSuccess();
         }
@@ -64,7 +75,7 @@ namespace osu.Game.Online.API
         /// <summary>
         /// The currently logged in user. Note that this will only be populated during <see cref="Perform"/>.
         /// </summary>
-        protected User User { get; private set; }
+        protected APIUser User { get; private set; }
 
         /// <summary>
         /// Invoked on successful completion of an API request.
@@ -102,7 +113,11 @@ namespace osu.Game.Online.API
             WebRequest = CreateWebRequest();
             WebRequest.Failed += Fail;
             WebRequest.AllowRetryOnTimeout = false;
-            WebRequest.AddHeader("Authorization", $"Bearer {API.AccessToken}");
+
+            WebRequest.AddHeader("x-api-version", API.APIVersion.ToString(CultureInfo.InvariantCulture));
+
+            if (!string.IsNullOrEmpty(API.AccessToken))
+                WebRequest.AddHeader("Authorization", $"Bearer {API.AccessToken}");
 
             if (isFailing) return;
 

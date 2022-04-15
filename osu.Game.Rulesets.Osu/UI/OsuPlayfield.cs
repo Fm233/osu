@@ -24,13 +24,15 @@ using osuTK;
 
 namespace osu.Game.Rulesets.Osu.UI
 {
+    [Cached]
     public class OsuPlayfield : Playfield
     {
         private readonly PlayfieldBorder playfieldBorder;
         private readonly ProxyContainer approachCircles;
         private readonly ProxyContainer spinnerProxies;
         private readonly JudgementContainer<DrawableOsuJudgement> judgementLayer;
-        private readonly FollowPointRenderer followPoints;
+
+        public FollowPointRenderer FollowPoints { get; }
 
         public static readonly Vector2 BASE_SIZE = new Vector2(512, 384);
 
@@ -49,7 +51,7 @@ namespace osu.Game.Rulesets.Osu.UI
             {
                 playfieldBorder = new PlayfieldBorder { RelativeSizeAxes = Axes.Both },
                 spinnerProxies = new ProxyContainer { RelativeSizeAxes = Axes.Both },
-                followPoints = new FollowPointRenderer { RelativeSizeAxes = Axes.Both },
+                FollowPoints = new FollowPointRenderer { RelativeSizeAxes = Axes.Both },
                 judgementLayer = new JudgementContainer<DrawableOsuJudgement> { RelativeSizeAxes = Axes.Both },
                 HitObjectContainer,
                 judgementAboveHitObjectLayer = new Container { RelativeSizeAxes = Axes.Both },
@@ -130,13 +132,13 @@ namespace osu.Game.Rulesets.Osu.UI
         protected override void OnHitObjectAdded(HitObject hitObject)
         {
             base.OnHitObjectAdded(hitObject);
-            followPoints.AddFollowPoints((OsuHitObject)hitObject);
+            FollowPoints.AddFollowPoints((OsuHitObject)hitObject);
         }
 
         protected override void OnHitObjectRemoved(HitObject hitObject)
         {
             base.OnHitObjectRemoved(hitObject);
-            followPoints.RemoveFollowPoints((OsuHitObject)hitObject);
+            FollowPoints.RemoveFollowPoints((OsuHitObject)hitObject);
         }
 
         private void onNewResult(DrawableHitObject judgedObject, JudgementResult result)
