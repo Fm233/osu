@@ -1,0 +1,77 @@
+{
+    "HitObjects": {
+        "$lookup_table": [
+            "osu.Game.Rulesets.Mania.Objects.Note, osu.Game.Rulesets.Mania"
+        ],
+        "$items": [
+            {
+                "$type": 0,
+                "ColumnBindable": 0,
+                "StartTimeBindable": 5940.0,
+                "SamplesBindable": [
+                    {
+                        "CustomSampleBank": 0,
+                        "IsLayered": false,
+                        "Name": "hitnormal",
+                        "Bank": null,
+                        "Suffix": null,
+                        "Volume": 0
+                    }
+                ],
+                "SampleControlPoint": {
+                    "CustomSampleBank": 0,
+                    "SampleBankBindable": "soft",
+                    "SampleVolumeBindable": 100,
+                    "SampleBank": "soft",
+                    "SampleVolume": 100
+                },
+                "Column": 0,
+                "StartTime": 5940.0,
+                "Samples": [
+                    {
+                        "CustomSampleBank": 0,
+                        "IsLayered": false,
+                        "Name": "hitnormal",
+                        "Bank": null,
+                        "Suffix": null,
+                        "Volume": 0
+                    }
+                ]
+            },
+            {
+                "$type": 0,
+                "ColumnBindable": 2,
+                "StartTimeBindable": 5940.0,
+                "SamplesBindable": [
+                    {
+                        "CustomSampleBank": 0,
+                        "IsLayered": false,
+                        "Name": "hitnormal",
+                        "Bank": null,
+                        "Suffix": null,
+                        "Volume": 0
+                    }
+                ],
+                "SampleControlPoint": {
+                    "CustomSampleBank": 0,
+                    "SampleBankBindable": "soft",
+                    "SampleVolumeBindable": 100,
+                    "SampleBank": "soft",
+                    "SampleVolume": 100
+                },
+                "Column": 2,
+                "StartTime": 5940.0,
+                "Samples": [
+                    {
+                        "CustomSampleBank": 0,
+                        "IsLayered": false,
+                        "Name": "hitnormal",
+                        "Bank": null,
+                        "Suffix": null,
+                        "Volume": 0
+                    }
+                ]
+            }
+        ]
+    }
+}

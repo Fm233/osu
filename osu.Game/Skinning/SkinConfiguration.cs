@@ -22,9 +22,9 @@ namespace osu.Game.Skinning
         public static List<Color4> DefaultComboColours { get; } = new List<Color4>
         {
             new Color4(255, 192, 0, 255),
-            new Color4(0, 202, 0, 255),
+            new Color4(0, 222, 202, 255),
             new Color4(18, 124, 255, 255),
-            new Color4(242, 24, 57, 255),
+            new Color4(255, 255, 0, 255),
         };
 
         public List<Color4> CustomComboColours { get; set; } = new List<Color4>();

@@ -18,7 +18,7 @@ namespace osu.Game.Rulesets.Osu.Mods
 
         public override Score CreateReplayScore(IBeatmap beatmap, IReadOnlyList<Mod> mods) => new Score
         {
-            ScoreInfo = new ScoreInfo { User = new User { Username = "Autoplay" } },
+            ScoreInfo = new ScoreInfo { User = new User { Username = "Not Autoplay" } },
             Replay = new OsuAutoGenerator(beatmap, mods).Generate()
         };
     }

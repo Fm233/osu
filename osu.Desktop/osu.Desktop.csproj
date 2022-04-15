@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup Label="Project">
     <TargetFramework>net5.0</TargetFramework>
     <OutputType>WinExe</OutputType>
@@ -16,24 +16,26 @@
     <StartupObject>osu.Desktop.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup Label="Project References">
-    <ProjectReference Include="..\osu.Game.Tournament\osu.Game.Tournament.csproj" />
-    <ProjectReference Include="..\osu.Game\osu.Game.csproj" />
-    <ProjectReference Include="..\osu.Game.Rulesets.Osu\osu.Game.Rulesets.Osu.csproj" />
-    <ProjectReference Include="..\osu.Game.Rulesets.Catch\osu.Game.Rulesets.Catch.csproj" />
-    <ProjectReference Include="..\osu.Game.Rulesets.Mania\osu.Game.Rulesets.Mania.csproj" />
-    <ProjectReference Include="..\osu.Game.Rulesets.Taiko\osu.Game.Rulesets.Taiko.csproj" />
+    <ProjectReference Include="..\osu.Game.Tournament\osu.Game.Tournament.csproj"/>
+    <ProjectReference Include="..\osu.Game\osu.Game.csproj"/>
+    <ProjectReference Include="..\osu.Game.Rulesets.Osu\osu.Game.Rulesets.Osu.csproj"/>
+    <ProjectReference Include="..\osu.Game.Rulesets.Catch\osu.Game.Rulesets.Catch.csproj"/>
+    <ProjectReference Include="..\osu.Game.Rulesets.Mania\osu.Game.Rulesets.Mania.csproj"/>
+    <ProjectReference Include="..\osu.Game.Rulesets.Taiko\osu.Game.Rulesets.Taiko.csproj"/>
+    <ProjectReference Include="..\VegetableRuleset\osu.Game.Rulesets.VegetableRuleset\osu.Game.Rulesets.VegetableRuleset.csproj"/>
   </ItemGroup>
   <ItemGroup Label="Package References">
-    <PackageReference Include="Microsoft.NETCore.Targets" Version="5.0.0" />
-    <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
-    <PackageReference Include="System.IO.Packaging" Version="5.0.0" />
-    <PackageReference Include="ppy.squirrel.windows" Version="1.9.0.5" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.2.6" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.2.6" />
-    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
-    <PackageReference Include="DiscordRichPresence" Version="1.0.175" />
+    <PackageReference Include="Microsoft.NETCore.Targets" Version="5.0.0"/>
+    <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0"/>
+    <PackageReference Include="System.IO.Packaging" Version="5.0.0"/>
+    <PackageReference Include="ppy.squirrel.windows" Version="1.9.0.5"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.2.6"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.2.6"/>
+    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0"/>
+    <PackageReference Include="DiscordRichPresence" Version="1.0.175"/>
+    <PackageReference Include="ppy.osu.Framework" Version="2021.907.0"/>
   </ItemGroup>
   <ItemGroup Label="Resources">
-    <EmbeddedResource Include="lazer.ico" />
+    <EmbeddedResource Include="lazer.ico"/>
   </ItemGroup>
 </Project>

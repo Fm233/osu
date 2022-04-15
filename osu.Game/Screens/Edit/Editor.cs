@@ -5,7 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Data;
+using System.IO;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
 using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
@@ -28,6 +31,8 @@ using osu.Game.IO.Serialization;
 using osu.Game.Online.API;
 using osu.Game.Overlays;
 using osu.Game.Rulesets.Edit;
+using osu.Game.Rulesets.Objects;
+using osu.Game.Rulesets.Objects.Types;
 using osu.Game.Screens.Edit.Components;
 using osu.Game.Screens.Edit.Components.Menus;
 using osu.Game.Screens.Edit.Components.Timelines.Summary;
@@ -38,6 +43,7 @@ using osu.Game.Screens.Edit.Timing;
 using osu.Game.Screens.Edit.Verify;
 using osu.Game.Screens.Play;
 using osu.Game.Users;
+using osu.Game.Audio;
 using osuTK.Graphics;
 using osuTK.Input;
 
@@ -561,6 +567,7 @@ namespace osu.Game.Screens.Edit
                 return;
 
             clipboard.Value = new ClipboardContent(editorBeatmap).Serialize();
+            Logger.Log(clipboard.Value);
         }
 
         protected void Paste()
@@ -697,6 +704,91 @@ namespace osu.Game.Screens.Edit
             beatmapManager.Export(Beatmap.Value.BeatmapSetInfo);
         }
 
+        private void importMapFromBinary()
+        {
+            string json = "";
+            using (StreamReader streamReader = new StreamReader("F:\\OsuLoadDir\\chart.txt"))
+            {
+                json = streamReader.ReadToEnd();
+            }
+            if (json != "")
+            {
+                BinaryChart chart = JsonConvert.DeserializeObject<BinaryChart>(json);
+                Logger.Log(chart.name);
+            }
+        }
+
+        private void copyAlt()
+        {
+            if (editorBeatmap.SelectedHitObjects.Count == 0)
+                return;
+
+            string json = JsonConvert.SerializeObject(new ClipboardContent(editorBeatmap));
+            Logger.Log(json);
+        }
+
+        private void exportMyGod()
+        {
+            Logger.Log(JsonConvert.SerializeObject(Beatmap.Value.BeatmapSetInfo));
+        }
+
+        private void exportToBinary()
+        {
+            HitObject[] hitObjects = editorBeatmap.HitObjects.ToArray();
+            List<BinaryNote> notes = new List<BinaryNote>();
+            int id = 0;
+            foreach (HitObject hitObject in hitObjects)
+            {
+                if (hitObject is IHasXPosition)
+                {
+                    IHasXPosition has = (IHasXPosition)hitObject;
+                    IList<HitSampleInfo> samples = hitObject.Samples;
+                    int s = 3;
+                    foreach (HitSampleInfo sample in samples)
+                    {
+                        if (sample.Name == HitSampleInfo.HIT_WHISTLE)
+                        {
+                            s = 1;
+                            break;
+                        }
+                        if (sample.Name == HitSampleInfo.HIT_CLAP)
+                        {
+                            s = 2;
+                            break;
+                        }
+                    }
+
+                    notes.Add(new BinaryNote((int)(hitObject.StartTime * 44.1), xToDirection((int)has.X), s, id));
+                    id++;
+                }
+            }
+            string json = JsonConvert.SerializeObject(notes.ToArray());
+
+            using (StreamWriter writerStream = File.CreateText("F:\\CoreNotes\\" + Beatmap.Value.BeatmapSetInfo.Metadata.Title + ".txt"))
+            {
+                writerStream.Write(json);
+            }
+        }
+
+        int xToDirection(int x)
+        {
+            switch (x)
+            {
+                case 0:
+                    return 3;
+                case 1:
+                    return 2;
+                case 2:
+                    return 0;
+                case 3:
+                    return 1;
+                case 4:
+                    return 4;
+                default:
+                    return 0;
+            }
+        }
+
         private void updateLastSavedHash()
         {
             lastSavedHash = changeHandler.CurrentStateHash;
@@ -712,6 +804,10 @@ namespace osu.Game.Screens.Edit
             if (RuntimeInfo.IsDesktop)
                 fileMenuItems.Add(new EditorMenuItem("Export package", MenuItemType.Standard, exportBeatmap));
 
+            fileMenuItems.Add(new EditorMenuItem("Import map from binary", MenuItemType.Standard, importMapFromBinary));
+            fileMenuItems.Add(new EditorMenuItem("Export my god", MenuItemType.Standard, exportMyGod));
+            fileMenuItems.Add(new EditorMenuItem("Export to binary", MenuItemType.Standard, exportToBinary));
+            fileMenuItems.Add(new EditorMenuItem("Copy (Alternative)", MenuItemType.Standard, copyAlt));
             fileMenuItems.Add(new EditorMenuItemSpacer());
 
             var beatmapSet = beatmapManager.QueryBeatmapSet(bs => bs.ID == Beatmap.Value.BeatmapSetInfo.ID) ?? playableBeatmap.BeatmapInfo.BeatmapSet;
