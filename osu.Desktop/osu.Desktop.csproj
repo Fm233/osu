@@ -22,14 +22,8 @@
     <ProjectReference Include="..\osu.Game.Rulesets.Catch\osu.Game.Rulesets.Catch.csproj"/>
     <ProjectReference Include="..\osu.Game.Rulesets.Mania\osu.Game.Rulesets.Mania.csproj"/>
     <ProjectReference Include="..\osu.Game.Rulesets.Taiko\osu.Game.Rulesets.Taiko.csproj"/>
-    <ProjectReference Include="..\VegetableRuleset\osu.Game.Rulesets.VegetableRuleset\osu.Game.Rulesets.VegetableRuleset.csproj"/>
   </ItemGroup>
   <ItemGroup Label="Package References">
-    <PackageReference Include="Microsoft.NETCore.Targets" Version="5.0.0"/>
-    <PackageReference Include="ppy.squirrel.windows" Version="1.9.0.5"/>
-    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0"/>
-    <PackageReference Include="DiscordRichPresence" Version="1.0.175"/>
-    <PackageReference Include="ppy.osu.Framework" Version="2021.907.0"/>
     <PackageReference Include="Clowd.Squirrel" Version="2.8.28-pre" />
     <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
     <PackageReference Include="System.IO.Packaging" Version="6.0.0" />

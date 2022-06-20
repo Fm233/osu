@@ -36,8 +36,8 @@ namespace osu.Game.Screens.Edit.Compose.Components
 
         protected new EditorSelectionHandler SelectionHandler => (EditorSelectionHandler)base.SelectionHandler;
 
-        private PlacementBlueprint currentPlacement;
-        private InputManager inputManager;
+        protected PlacementBlueprint currentPlacement;
+        protected InputManager inputManager;
 
         public ComposeBlueprintContainer(HitObjectComposer composer)
             : base(composer)

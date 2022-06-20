@@ -9,7 +9,7 @@ using osu.Game.Rulesets.Scoring;
 
 namespace osu.Game.Rulesets.Mania.Objects
 {
-    public abstract class ManiaHitObject : HitObject, IHasColumn, IHasXPosition
+    public abstract class ManiaHitObject : HitObject, IHasColumn, ICanSetColumn, IHasXPosition
     {
         public readonly Bindable<int> ColumnBindable = new Bindable<int>();
 
